@@ -1,0 +1,13 @@
+ddgs>=9.0.0
+duckduckgo-search>=6.3.0
+requests>=2.32.0
+urllib3<2
+beautifulsoup4>=4.12.0
+pypdf>=4.3.0
+tqdm>=4.66.0
+numpy>=1.26.0
+sentence-transformers>=3.0.0
+streamlit>=1.35.0
+reportlab>=4.2.0
+PyMuPDF>=1.26.0
+rapidocr-onnxruntime>=1.4.0
