@@ -1,0 +1,48 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtualenvs
+.venv/
+.venv_*/
+venv/
+env/
+.env
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Cursor / agentes
+.cursor/
+
+# Streamlit (ignora apenas secrets/credenciais; o config.toml é versionado)
+.streamlit/secrets.toml
+.streamlit/credentials.toml
+
+# Modelos e caches de ML
+.cache/
+.huggingface/
+.sentence-transformers/
+
+# Build / distribuição
+build/
+dist/
+*.egg-info/
+*.egg
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Dados grandes (gerados pela aplicação)
+indice_juridico/*.npy
+indice_juridico/*.jsonl
+indice_juridico/*.json
+uploads/*.pdf
+relatorios/*.pdf
+downloads_peticoes/aceitas/*.pdf
+downloads_peticoes/rejeitadas/*.pdf

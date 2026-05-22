@@ -1,13 +1,30 @@
+# --- Busca web e HTTP ---
 ddgs>=9.0.0
-duckduckgo-search>=6.3.0
 requests>=2.32.0
-urllib3<2
+urllib3>=2.0.0
 beautifulsoup4>=4.12.0
+
+# --- Leitura e geração de PDF ---
 pypdf>=4.3.0
-tqdm>=4.66.0
+PyMuPDF>=1.26.0
+reportlab>=4.2.0
+
+# --- OCR (compatível com Python 3.13+) ---
+rapidocr>=3.0.0
+onnxruntime>=1.18.0
+
+# --- Embeddings e NLP ---
 numpy>=1.26.0
 sentence-transformers>=3.0.0
+
+# --- LangChain (orquestração do chatbot) ---
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-community>=0.3.0
+langchain-ollama>=0.2.0
+
+# --- Utilidades ---
+tqdm>=4.66.0
+
+# --- Interface web ---
 streamlit>=1.35.0
-reportlab>=4.2.0
-PyMuPDF>=1.26.0
-rapidocr-onnxruntime>=1.4.0

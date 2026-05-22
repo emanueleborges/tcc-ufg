@@ -1,0 +1,21 @@
+# Configuração do Streamlit para o Crítico Jurídico Inteligente.
+#
+# fileWatcherType = "none" desativa o watcher de arquivos do Streamlit.
+# Sem isso, o watcher tenta inspecionar todos os módulos lazy do
+# `transformers` (carregados via `sentence-transformers`), o que gera
+# spam de tracebacks `ModuleNotFoundError: torchvision` no terminal —
+# o app continuaria funcionando, mas o log fica ilegível.
+#
+# Para recarregar manualmente após alterar o código, use o botão "Rerun"
+# no canto superior direito da UI ou pressione "R".
+
+[server]
+fileWatcherType = "none"
+headless = false
+runOnSave = false
+
+[browser]
+gatherUsageStats = false
+
+[logger]
+level = "warning"

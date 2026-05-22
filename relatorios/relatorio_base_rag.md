@@ -1,6 +1,6 @@
 # Relatório da Base RAG Jurídica
 
-Gerado em: 21/05/2026 19:32
+Gerado em: 22/05/2026 11:42
 Documentos indexados: 51
 Chunks jurídicos: 1500
 
@@ -39,4 +39,4 @@ Chunks jurídicos: 1500
 
 ## Próximo passo
 
-Abra a interface com `streamlit run interface.py` e envie uma petição em PDF para análise.
+Execute `python app.py` para abrir a interface web e enviar uma petição em PDF.
