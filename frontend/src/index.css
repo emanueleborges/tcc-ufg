@@ -1,0 +1,48 @@
+:root {
+  --bg: #f3efe6;
+  --bg-elevated: #faf7f0;
+  --ink: #1c2420;
+  --muted: #5f6b64;
+  --line: #d8d0c2;
+  --accent: #1f5c45;
+  --accent-soft: #d8ebe2;
+  --user-bg: #1f5c45;
+  --user-ink: #f7f4ec;
+  --assistant-bg: #ffffff;
+  --danger: #9b2c2c;
+  --sidebar: #17221d;
+  --sidebar-ink: #e8efe9;
+  --shadow: 0 10px 40px rgba(28, 36, 32, 0.08);
+  --radius: 18px;
+  --font-body: 'DM Sans', system-ui, sans-serif;
+  --font-display: 'Fraunces', Georgia, serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--font-body);
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top left, rgba(31, 92, 69, 0.08), transparent 35%),
+    linear-gradient(180deg, #f7f3ea 0%, var(--bg) 45%, #ebe4d7 100%);
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+a {
+  color: var(--accent);
+}

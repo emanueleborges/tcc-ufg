@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+*.egg
+
+# Streamlit (config.toml versionado; secrets não)
+.streamlit/secrets.toml
+.streamlit/credentials.toml
+
+# Caches de ML / Hugging Face
+.cache/
+.huggingface/
+.sentence-transformers/
+
+# Índice RAG gerado
+indice_juridico/*
+!indice_juridico/.gitkeep
+
+# Uploads de petições
+uploads/*
+!uploads/.gitkeep
+
+# PDFs baixados / rejeitados + metadados do scraper
+downloads_peticoes/aceitas/*
+!downloads_peticoes/aceitas/.gitkeep
+downloads_peticoes/rejeitadas/*
+!downloads_peticoes/rejeitadas/.gitkeep
+downloads_peticoes/metadata.json
+downloads_peticoes/metadata.csv
+
+# Relatórios gerados (PDF e recriação); Markdown de corpus pode ser versionado
+relatorios/*.pdf
+relatorios/peticao_recriada.*

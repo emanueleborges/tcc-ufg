@@ -4,12 +4,21 @@ __pycache__/
 *$py.class
 *.so
 .Python
+build/
+dist/
+*.egg-info/
+*.egg
+pip-log.txt
+pip-delete-this-directory.txt
 
 # Virtualenvs
 .venv/
 .venv_*/
+.venv-*/
 venv/
 env/
+
+# Env na raiz do monorepo
 .env
 
 # IDE / OS
@@ -21,28 +30,7 @@ Thumbs.db
 # Cursor / agentes
 .cursor/
 
-# Streamlit (ignora apenas secrets/credenciais; o config.toml é versionado)
-.streamlit/secrets.toml
-.streamlit/credentials.toml
-
-# Modelos e caches de ML
+# Caches de ML (caso gerados na raiz)
 .cache/
 .huggingface/
 .sentence-transformers/
-
-# Build / distribuição
-build/
-dist/
-*.egg-info/
-*.egg
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Dados grandes (gerados pela aplicação)
-indice_juridico/*.npy
-indice_juridico/*.jsonl
-indice_juridico/*.json
-uploads/*.pdf
-relatorios/*.pdf
-downloads_peticoes/aceitas/*.pdf
-downloads_peticoes/rejeitadas/*.pdf
