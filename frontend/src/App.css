@@ -163,6 +163,7 @@
 .ghost-btn,
 .link-btn,
 .icon-btn,
+.mic-btn,
 .send-btn {
   border: 0;
   cursor: pointer;
@@ -209,7 +210,7 @@
   gap: 1rem;
   padding: 1.4rem 1.5rem 0.75rem;
   width: 100%;
-  max-width: min(1240px, 100%);
+  max-width: min(var(--chat-max), 100%);
   margin-inline: auto;
   box-sizing: border-box;
 }
@@ -419,7 +420,7 @@
   justify-content: space-between;
   gap: 1rem;
   margin: 0 auto;
-  width: min(calc(1240px - 3rem), calc(100% - 3rem));
+  width: min(calc(var(--chat-max) - 3rem), calc(100% - 3rem));
   padding: 0.85rem 1rem;
   border-radius: 14px;
 }
@@ -443,7 +444,7 @@
   display: flex;
   flex-direction: column;
   gap: 1.15rem;
-  width: min(1240px, 100%);
+  width: min(var(--chat-max), 100%);
   margin-inline: auto;
 }
 
@@ -948,8 +949,9 @@
 
 .composer > .composer-box,
 .composer > .composer-file,
-.composer > .composer-hint {
-  width: min(1240px, 100%);
+.composer > .composer-hint,
+.composer > .composer-voice-hint {
+  width: min(var(--chat-max), 100%);
   margin-inline: auto;
 }
 
@@ -966,7 +968,7 @@
 
 .composer-box {
   display: grid;
-  grid-template-columns: auto auto 1fr auto;
+  grid-template-columns: auto auto 1fr auto auto;
   gap: 0.55rem;
   align-items: end;
   padding: 0.7rem;
@@ -991,18 +993,30 @@
 }
 
 .icon-btn,
+.mic-btn,
 .send-btn {
   border-radius: 14px;
   height: 44px;
   padding: 0 1rem;
 }
 
-.icon-btn {
+.icon-btn,
+.mic-btn {
   width: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   background: #e7efe9;
   color: var(--accent);
   font-size: 1.35rem;
   line-height: 1;
+}
+
+.mic-btn.is-listening {
+  background: #f3d9d6;
+  color: #9a3b32;
+  box-shadow: 0 0 0 2px rgba(154, 59, 50, 0.18);
+  animation: mic-pulse 1.4s ease-in-out infinite;
 }
 
 .send-btn {
@@ -1012,15 +1026,32 @@
 }
 
 .send-btn:disabled,
-.icon-btn:disabled {
+.icon-btn:disabled,
+.mic-btn:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+.composer-voice-hint {
+  margin: 0.4rem 0 0;
+  color: #9a3b32;
+  font-size: 0.8rem;
 }
 
 .composer-hint {
   margin: 0.35rem auto 0;
   color: var(--muted);
   font-size: 0.78rem;
+}
+
+@keyframes mic-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.04);
+  }
 }
 
 .typing {

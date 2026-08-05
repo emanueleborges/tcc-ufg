@@ -25,6 +25,11 @@ const FALLBACK_PERSONAS: PersonaOut[] = [
   },
 ]
 
+function getSpeechRecognition(): SpeechRecognitionConstructor | null {
+  if (typeof window === 'undefined') return null
+  return window.SpeechRecognition ?? window.webkitSpeechRecognition ?? null
+}
+
 function PersonaIcon() {
   return (
     <svg
@@ -45,6 +50,34 @@ function PersonaIcon() {
   )
 }
 
+function MicIcon() {
+  return (
+    <svg
+      width="30"
+      height="30"
+      viewBox="2 0 17 17"
+      fill="none"
+      aria-hidden="true"
+    >
+      <rect
+        x="9"
+        y="3"
+        width="6"
+        height="11"
+        rx="3"
+        stroke="currentColor"
+        strokeWidth="1.8"
+      />
+      <path
+        d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21"
+        stroke="currentColor"
+        strokeWidth="2.0"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
 export function ChatInput({
   disabled,
   pendingFile,
@@ -56,10 +89,19 @@ export function ChatInput({
 }: Props) {
   const [text, setText] = useState('')
   const [menuOpen, setMenuOpen] = useState(false)
+  const [listening, setListening] = useState(false)
+  const [voiceHint, setVoiceHint] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
+  const baseTextRef = useRef('')
+  const textRef = useRef(text)
   const options = personas.length > 0 ? personas : FALLBACK_PERSONAS
   const selected = options.find((item) => item.id === personaId) ?? options[0]
+
+  useEffect(() => {
+    textRef.current = text
+  }, [text])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -82,12 +124,100 @@ export function ChatInput({
     }
   }, [menuOpen])
 
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.abort()
+      recognitionRef.current = null
+    }
+  }, [])
+
+  function stopListening() {
+    recognitionRef.current?.stop()
+  }
+
+  function startListening() {
+    const SpeechRecognitionCtor = getSpeechRecognition()
+    if (!SpeechRecognitionCtor) {
+      setVoiceHint(
+        'Reconhecimento de voz indisponível neste navegador. Use Chrome ou Edge.',
+      )
+      return
+    }
+
+    setVoiceHint(null)
+    const current = textRef.current
+    baseTextRef.current = current && !/\s$/.test(current) ? `${current} ` : current
+
+    const recognition = new SpeechRecognitionCtor()
+    recognition.lang = 'pt-BR'
+    recognition.continuous = true
+    recognition.interimResults = true
+
+    recognition.onresult = (event) => {
+      let interim = ''
+      let finalized = baseTextRef.current
+
+      for (let i = event.resultIndex; i < event.results.length; i += 1) {
+        const result = event.results[i]
+        const chunk = result[0]?.transcript ?? ''
+        if (result.isFinal) {
+          finalized += chunk
+          if (chunk && !/\s$/.test(chunk)) finalized += ' '
+          baseTextRef.current = finalized
+        } else {
+          interim += chunk
+        }
+      }
+
+      setText(`${finalized}${interim}`)
+    }
+
+    recognition.onerror = (event) => {
+      if (event.error === 'aborted') return
+      if (event.error === 'not-allowed') {
+        setVoiceHint('Permissão de microfone negada. Libere o acesso nas configurações do navegador.')
+      } else if (event.error === 'no-speech') {
+        setVoiceHint('Nenhuma fala detectada. Tente novamente.')
+      } else {
+        setVoiceHint('Não foi possível transcrever o áudio. Tente novamente.')
+      }
+      setListening(false)
+      recognitionRef.current = null
+    }
+
+    recognition.onend = () => {
+      setListening(false)
+      recognitionRef.current = null
+    }
+
+    try {
+      recognition.start()
+      recognitionRef.current = recognition
+      setListening(true)
+    } catch {
+      setVoiceHint('Não foi possível iniciar o microfone.')
+      setListening(false)
+      recognitionRef.current = null
+    }
+  }
+
+  function toggleListening() {
+    if (disabled) return
+    if (listening) {
+      stopListening()
+      return
+    }
+    startListening()
+  }
+
   function submit(event?: FormEvent) {
     event?.preventDefault()
     if (disabled) return
     if (!text.trim() && !pendingFile) return
+    if (listening) stopListening()
     onSend(text)
     setText('')
+    baseTextRef.current = ''
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -186,12 +316,26 @@ export function ChatInput({
 
         <textarea
           value={text}
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => {
+            setText(e.target.value)
+            if (listening) baseTextRef.current = e.target.value
+          }}
           onKeyDown={onKeyDown}
           placeholder="Pergunte algo ou anexe uma petição em PDF…"
           rows={1}
           disabled={disabled}
         />
+        <button
+          type="button"
+          className={`mic-btn${listening ? ' is-listening' : ''}`}
+          title={listening ? 'Parar ditado' : 'Ditar por voz'}
+          aria-label={listening ? 'Parar ditado por voz' : 'Ditar por voz'}
+          aria-pressed={listening}
+          disabled={disabled}
+          onClick={toggleListening}
+        >
+          <MicIcon />
+        </button>
         <button
           type="submit"
           className="send-btn"
@@ -200,8 +344,9 @@ export function ChatInput({
           Enviar
         </button>
       </div>
+      {voiceHint && <p className="composer-voice-hint">{voiceHint}</p>}
       <p className="composer-hint">
-        Enter envia · Shift+Enter quebra linha · + anexa PDF · chip troca a persona
+        Enter envia · Shift+Enter quebra linha · + anexa PDF · microfone dita · chip troca a persona
       </p>
     </form>
   )
