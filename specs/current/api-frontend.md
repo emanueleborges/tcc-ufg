@@ -33,3 +33,4 @@ Altura ≤ 820px: sidebar ainda mais compacta (sem scrollbar da página).
 - [x] Tablet (901–1099): sidebar estreita, conteúdo legível
 - [x] Mobile (≤900): drawer de configurações + chat full-width
 - [x] Phone (≤640): composer e mensagens usáveis sem overflow horizontal
+- [x] Temas claro/escuro com ícone de alternância (ver `theme-toggle.md`)

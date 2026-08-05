@@ -11,11 +11,14 @@ import type { IndexStatusResponse, ModelOut, PersonaOut } from './api/types'
 import { ChatBubble } from './components/ChatBubble'
 import { ChatInput } from './components/ChatInput'
 import { Sidebar } from './components/Sidebar'
+import { ThemeToggle } from './components/ThemeToggle'
 import { useChat } from './hooks/useChat'
+import { useTheme } from './hooks/useTheme'
 import './App.css'
 
 export default function App() {
   const chat = useChat()
+  const { theme, toggleTheme } = useTheme()
   const [apiOnline, setApiOnline] = useState<boolean | null>(null)
   const [models, setModels] = useState<ModelOut[]>([])
   const [personas, setPersonas] = useState<PersonaOut[]>([])
@@ -166,13 +169,16 @@ export default function App() {
             <h1 className="chat-title">Chat IA</h1>
             <p>Roteamento automático entre RAG, Ollama e Internet</p>
           </div>
-          <button
-            type="button"
-            className="new-chat-btn"
-            onClick={chat.clearChat}
-          >
-            Nova conversa
-          </button>
+          <div className="chat-header-actions">
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
+            <button
+              type="button"
+              className="new-chat-btn"
+              onClick={chat.clearChat}
+            >
+              Nova conversa
+            </button>
+          </div>
         </header>
 
         {chat.petitionName && (

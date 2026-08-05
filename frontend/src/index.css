@@ -1,21 +1,42 @@
-:root {
+:root,
+[data-theme='light'] {
   --bg: #f3efe6;
   --bg-elevated: #faf7f0;
+  --bg-soft: #f7f3ea;
   --ink: #1c2420;
   --muted: #5f6b64;
   --line: #d8d0c2;
   --accent: #1f5c45;
+  --accent-hover: #174a37;
   --accent-soft: #d8ebe2;
+  --accent-chip: #e7efe9;
   --user-bg: #1f5c45;
   --user-ink: #f7f4ec;
   --assistant-bg: #ffffff;
   --danger: #9b2c2c;
+  --danger-bg: #f8e4e4;
   --sidebar: #17221d;
   --sidebar-ink: #e8efe9;
+  --sidebar-muted: #90a098;
+  --sidebar-label: #9eb0a6;
+  --sidebar-input-bg: #101813;
+  --sidebar-input-border: #2f4038;
+  --sidebar-btn: #24342c;
+  --sidebar-btn-hover: #324a3e;
   --shadow: 0 10px 40px rgba(28, 36, 32, 0.08);
+  --composer-file-bg: #efe8da;
+  --avatar-bg: #e7e0d3;
+  --code-bg: rgba(28, 36, 32, 0.06);
+  --pre-bg: #f1eee6;
+  --badge-bg: #ece7db;
+  --citations-bg: rgba(255, 255, 255, 0.55);
+  --panel-bg: #f7f3ea;
+  --warn: #8a3b1d;
+  --body-grad-top: #f7f3ea;
+  --body-grad-bottom: #ebe4d7;
+  --body-glow: rgba(31, 92, 69, 0.08);
   --radius: 18px;
   --chat-max: 1760px;
-  /* Escala tipográfica (referência: sidebar) */
   --text-label: 0.78rem;
   --text-meta: 0.85rem;
   --text-ui: 0.88rem;
@@ -25,6 +46,46 @@
   --text-title: 1.35rem;
   --font-body: 'DM Sans', system-ui, -apple-system, sans-serif;
   --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  --bg: #0f1613;
+  --bg-elevated: #1a2420;
+  --bg-soft: #15201b;
+  --ink: #e8efe9;
+  --muted: #9eb0a6;
+  --line: #2c3a33;
+  --accent: #6fbf9a;
+  --accent-hover: #86d0ad;
+  --accent-soft: #1e3a2f;
+  --accent-chip: #24342c;
+  --user-bg: #2a6b50;
+  --user-ink: #f2faf6;
+  --assistant-bg: #1a2420;
+  --danger: #f0a3a3;
+  --danger-bg: #3a2222;
+  --sidebar: #0c1210;
+  --sidebar-ink: #e8efe9;
+  --sidebar-muted: #8fa399;
+  --sidebar-label: #8fa399;
+  --sidebar-input-bg: #141c18;
+  --sidebar-input-border: #2f4038;
+  --sidebar-btn: #24342c;
+  --sidebar-btn-hover: #324a3e;
+  --shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+  --composer-file-bg: #24342c;
+  --avatar-bg: #24342c;
+  --code-bg: rgba(255, 255, 255, 0.08);
+  --pre-bg: #141c18;
+  --badge-bg: #24342c;
+  --citations-bg: rgba(255, 255, 255, 0.04);
+  --panel-bg: #15201b;
+  --warn: #e0a070;
+  --body-grad-top: #121a16;
+  --body-grad-bottom: #0f1613;
+  --body-glow: rgba(111, 191, 154, 0.1);
+  color-scheme: dark;
 }
 
 * {
@@ -46,10 +107,11 @@ body {
   font-size: var(--text-body);
   color: var(--ink);
   background:
-    radial-gradient(circle at top left, rgba(31, 92, 69, 0.08), transparent 35%),
-    linear-gradient(180deg, #f7f3ea 0%, var(--bg) 45%, #ebe4d7 100%);
+    radial-gradient(circle at top left, var(--body-glow), transparent 35%),
+    linear-gradient(180deg, var(--body-grad-top) 0%, var(--bg) 45%, var(--body-grad-bottom) 100%);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  transition: background 180ms ease, color 180ms ease;
 }
 
 button,

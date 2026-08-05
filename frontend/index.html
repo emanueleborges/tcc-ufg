@@ -5,6 +5,15 @@
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚖️</text></svg>" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Crítico Jurídico — Chat</title>
+    <script>
+      try {
+        var t = localStorage.getItem('critico-juridico-theme')
+        if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t)
+        else document.documentElement.setAttribute('data-theme', 'light')
+      } catch (e) {
+        document.documentElement.setAttribute('data-theme', 'light')
+      }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
