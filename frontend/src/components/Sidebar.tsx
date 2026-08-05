@@ -15,6 +15,7 @@ interface Props {
   actionMessage: string | null
   onRebuildIndex: () => void
   onScrape: () => void
+  onClose?: () => void
 }
 
 export function Sidebar({
@@ -32,14 +33,27 @@ export function Sidebar({
   actionMessage,
   onRebuildIndex,
   onScrape,
+  onClose,
 }: Props) {
   const ollamaModels = models.filter((m) => m.owned_by === 'ollama')
 
   return (
-    <aside className="sidebar">
-      <div className="brand">
-        <p className="brand-mark">Crítico Jurídico</p>
-        <p className="brand-sub">Assistente RAG · Ollama · Web</p>
+    <aside className="sidebar" id="app-sidebar">
+      <div className="sidebar-top">
+        <div className="brand">
+          <p className="brand-mark">Crítico Jurídico</p>
+          <p className="brand-sub">Assistente RAG · Ollama · Web</p>
+        </div>
+        {onClose && (
+          <button
+            type="button"
+            className="sidebar-close"
+            onClick={onClose}
+            aria-label="Fechar menu"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       <div className="sidebar-block">

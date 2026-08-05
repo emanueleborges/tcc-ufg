@@ -23,6 +23,7 @@ export default function App() {
   const [busyAction, setBusyAction] = useState<'rebuild' | 'scrape' | null>(null)
   const [busyPercent, setBusyPercent] = useState<number | null>(null)
   const [actionMessage, setActionMessage] = useState<string | null>(null)
+  const [sidebarOpen, setSidebarOpen] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const refreshIndexStatus = useCallback(async () => {
@@ -65,6 +66,17 @@ export default function App() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [chat.messages, chat.isLoading])
+
+  useEffect(() => {
+    if (!sidebarOpen) return
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setSidebarOpen(false)
+    }
+
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [sidebarOpen])
 
   async function handleRebuildIndex() {
     setBusyAction('rebuild')
@@ -112,7 +124,14 @@ export default function App() {
   }
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${sidebarOpen ? ' is-sidebar-open' : ''}`}>
+      <button
+        type="button"
+        className="sidebar-backdrop"
+        aria-label="Fechar menu"
+        tabIndex={sidebarOpen ? 0 : -1}
+        onClick={() => setSidebarOpen(false)}
+      />
       <Sidebar
         model={chat.model}
         onModelChange={chat.setModel}
@@ -128,10 +147,21 @@ export default function App() {
         actionMessage={actionMessage}
         onRebuildIndex={handleRebuildIndex}
         onScrape={handleScrape}
+        onClose={() => setSidebarOpen(false)}
       />
 
       <main className="chat-main">
         <header className="chat-header">
+          <button
+            type="button"
+            className="sidebar-toggle"
+            aria-label="Abrir configurações"
+            aria-expanded={sidebarOpen}
+            aria-controls="app-sidebar"
+            onClick={() => setSidebarOpen(true)}
+          >
+            ☰
+          </button>
           <div className="chat-header-copy">
             <h1 className="chat-title">Chat IA</h1>
             <p>Roteamento automático entre RAG, Ollama e Internet</p>

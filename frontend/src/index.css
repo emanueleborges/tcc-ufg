@@ -15,6 +15,14 @@
   --shadow: 0 10px 40px rgba(28, 36, 32, 0.08);
   --radius: 18px;
   --chat-max: 1760px;
+  /* Escala tipográfica (referência: sidebar) */
+  --text-label: 0.78rem;
+  --text-meta: 0.85rem;
+  --text-ui: 0.88rem;
+  --text-body: 0.9rem;
+  --text-muted: 0.92rem;
+  --text-list: 0.95rem;
+  --text-title: 1.35rem;
   --font-body: 'DM Sans', system-ui, -apple-system, sans-serif;
   --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
 }
@@ -29,11 +37,13 @@ body,
   margin: 0;
   width: 100%;
   height: 100%;
-  min-height: 100%;
+  max-height: 100dvh;
+  overflow: hidden;
 }
 
 body {
   font-family: var(--font-body);
+  font-size: var(--text-body);
   color: var(--ink);
   background:
     radial-gradient(circle at top left, rgba(31, 92, 69, 0.08), transparent 35%),
@@ -50,6 +60,29 @@ select {
   color: inherit;
 }
 
+button {
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease,
+    transform 140ms ease,
+    opacity 140ms ease,
+    filter 140ms ease;
+}
+
+button:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+button:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
 a {
   color: var(--accent);
 }
@@ -61,6 +94,6 @@ h4,
 h5,
 h6 {
   color: inherit;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.25;
 }

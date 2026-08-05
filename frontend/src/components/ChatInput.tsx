@@ -93,14 +93,28 @@ export function ChatInput({
   const [voiceHint, setVoiceHint] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const menuRef = useRef<HTMLDivElement>(null)
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const baseTextRef = useRef('')
   const textRef = useRef(text)
   const options = personas.length > 0 ? personas : FALLBACK_PERSONAS
   const selected = options.find((item) => item.id === personaId) ?? options[0]
 
+  function resizeTextarea() {
+    const el = textareaRef.current
+    if (!el) return
+    el.style.height = 'auto'
+    const styles = window.getComputedStyle(el)
+    const lineHeight = Number.parseFloat(styles.lineHeight) || 20
+    const paddingY =
+      Number.parseFloat(styles.paddingTop) + Number.parseFloat(styles.paddingBottom)
+    const maxHeight = lineHeight * 2 + paddingY
+    el.style.height = `${Math.min(el.scrollHeight, maxHeight)}px`
+  }
+
   useEffect(() => {
     textRef.current = text
+    resizeTextarea()
   }, [text])
 
   useEffect(() => {
@@ -245,76 +259,8 @@ export function ChatInput({
         </div>
       )}
       <div className="composer-box">
-        <div className="persona-menu" ref={menuRef}>
-          <button
-            type="button"
-            className={`persona-chip${menuOpen ? ' is-open' : ''}`}
-            title={`Persona: ${selected.label}`}
-            aria-label={`Persona jurídica: ${selected.label}`}
-            aria-haspopup="menu"
-            aria-expanded={menuOpen}
-            disabled={disabled}
-            onClick={() => setMenuOpen((open) => !open)}
-          >
-            <PersonaIcon />
-            <span className="persona-chip-text">
-              <span className="persona-chip-kicker">Persona</span>
-              <span className="persona-chip-label">{selected.label}</span>
-            </span>
-            <span className="persona-chip-caret" aria-hidden>
-              ▾
-            </span>
-          </button>
-          {menuOpen && (
-            <div className="persona-menu-panel" role="menu" aria-label="Personas jurídicas">
-              <p className="persona-menu-title">Persona jurídica</p>
-              <ul className="persona-menu-list">
-                {options.map((persona) => {
-                  const active = persona.id === personaId
-                  return (
-                    <li key={persona.id}>
-                      <button
-                        type="button"
-                        role="menuitemradio"
-                        aria-checked={active}
-                        className={`persona-menu-item${active ? ' is-active' : ''}`}
-                        onClick={() => {
-                          onPersonaChange(persona.id)
-                          setMenuOpen(false)
-                        }}
-                      >
-                        <span className="persona-menu-item-label">{persona.label}</span>
-                        <span className="persona-menu-item-desc">{persona.description}</span>
-                      </button>
-                    </li>
-                  )
-                })}
-              </ul>
-            </div>
-          )}
-        </div>
-
-        <button
-          type="button"
-          className="icon-btn"
-          title="Anexar petição PDF"
-          disabled={disabled}
-          onClick={() => fileRef.current?.click()}
-        >
-          +
-        </button>
-        <input
-          ref={fileRef}
-          type="file"
-          accept="application/pdf,.pdf"
-          hidden
-          onChange={(e) => {
-            const file = e.target.files?.[0] ?? null
-            onFileChange(file)
-          }}
-        />
-
         <textarea
+          ref={textareaRef}
           value={text}
           onChange={(e) => {
             setText(e.target.value)
@@ -325,24 +271,98 @@ export function ChatInput({
           rows={1}
           disabled={disabled}
         />
-        <button
-          type="button"
-          className={`mic-btn${listening ? ' is-listening' : ''}`}
-          title={listening ? 'Parar ditado' : 'Ditar por voz'}
-          aria-label={listening ? 'Parar ditado por voz' : 'Ditar por voz'}
-          aria-pressed={listening}
-          disabled={disabled}
-          onClick={toggleListening}
-        >
-          <MicIcon />
-        </button>
-        <button
-          type="submit"
-          className="send-btn"
-          disabled={disabled || (!text.trim() && !pendingFile)}
-        >
-          Enviar
-        </button>
+
+        <div className="composer-toolbar">
+          <div className="persona-menu" ref={menuRef}>
+            <button
+              type="button"
+              className={`persona-chip${menuOpen ? ' is-open' : ''}`}
+              title={`Persona: ${selected.label}`}
+              aria-label={`Persona jurídica: ${selected.label}`}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              disabled={disabled}
+              onClick={() => setMenuOpen((open) => !open)}
+            >
+              <PersonaIcon />
+              <span className="persona-chip-text">
+                <span className="persona-chip-kicker">Persona</span>
+                <span className="persona-chip-label">{selected.label}</span>
+              </span>
+              <span className="persona-chip-caret" aria-hidden>
+                ▾
+              </span>
+            </button>
+            {menuOpen && (
+              <div className="persona-menu-panel" role="menu" aria-label="Personas jurídicas">
+                <p className="persona-menu-title">Persona jurídica</p>
+                <ul className="persona-menu-list">
+                  {options.map((persona) => {
+                    const active = persona.id === personaId
+                    return (
+                      <li key={persona.id}>
+                        <button
+                          type="button"
+                          role="menuitemradio"
+                          aria-checked={active}
+                          className={`persona-menu-item${active ? ' is-active' : ''}`}
+                          onClick={() => {
+                            onPersonaChange(persona.id)
+                            setMenuOpen(false)
+                          }}
+                        >
+                          <span className="persona-menu-item-label">{persona.label}</span>
+                          <span className="persona-menu-item-desc">{persona.description}</span>
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </div>
+            )}
+          </div>
+
+          <button
+            type="button"
+            className="icon-btn"
+            title="Anexar petição PDF"
+            disabled={disabled}
+            onClick={() => fileRef.current?.click()}
+          >
+            +
+          </button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/pdf,.pdf"
+            hidden
+            onChange={(e) => {
+              const file = e.target.files?.[0] ?? null
+              onFileChange(file)
+            }}
+          />
+
+          <div className="composer-toolbar-actions">
+            <button
+              type="button"
+              className={`mic-btn${listening ? ' is-listening' : ''}`}
+              title={listening ? 'Parar ditado' : 'Ditar por voz'}
+              aria-label={listening ? 'Parar ditado por voz' : 'Ditar por voz'}
+              aria-pressed={listening}
+              disabled={disabled}
+              onClick={toggleListening}
+            >
+              <MicIcon />
+            </button>
+            <button
+              type="submit"
+              className="send-btn"
+              disabled={disabled || (!text.trim() && !pendingFile)}
+            >
+              Enviar
+            </button>
+          </div>
+        </div>
       </div>
       {voiceHint && <p className="composer-voice-hint">{voiceHint}</p>}
       <p className="composer-hint">
