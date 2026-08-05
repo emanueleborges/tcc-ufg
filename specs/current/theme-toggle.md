@@ -29,6 +29,10 @@ Dois temas (claro = atual; escuro) e um ícone no header do chat que alterna ent
 
 Ícone no header do chat (próximo a “Nova conversa”) alterna claro ↔ escuro. Ícone/aria-label refletem o tema **para o qual** se vai.
 
+### R2b — Borda animada do composer
+
+O `.composer-box` tem borda fina (~1px) com gradiente conic nas cores do tema, rotacionando continuamente. Respeita `prefers-reduced-motion` (borda estática).
+
 ### R3 — Persistência
 
 Preferência salva em `localStorage` (`critico-juridico-theme`) e restaurada no carregamento (script antecipado evita flash).
@@ -56,6 +60,7 @@ Nenhuma rota nova.
 - [x] Temas claro e escuro disponíveis
 - [x] Ícone no header alterna os temas
 - [x] Preferência persistida em `localStorage`
+- [x] Borda fina do input com animação de cores do tema
 - [x] Sem mudanças de API
 
 ## Impacto técnico

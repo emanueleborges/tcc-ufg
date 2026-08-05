@@ -35,6 +35,14 @@
   --body-grad-top: #f7f3ea;
   --body-grad-bottom: #ebe4d7;
   --body-glow: rgba(31, 92, 69, 0.08);
+  --composer-border-1: #9ad9bc;
+  --composer-border-2: #2f7a5a;
+  --composer-border-3: #d4ef8a;
+  --composer-border-4: #55c9b0;
+  --composer-border-width: 2px;
+  --composer-glow-opacity: 0.5;
+  --composer-glow-blur: 7px;
+  --composer-glow-spread: 1.5px;
   --radius: 18px;
   --chat-max: 1760px;
   --text-label: 0.78rem;
@@ -85,6 +93,14 @@
   --body-grad-top: #121a16;
   --body-grad-bottom: #0f1613;
   --body-glow: rgba(111, 191, 154, 0.1);
+  --composer-border-1: #c8e86c;
+  --composer-border-2: #6fbf9a;
+  --composer-border-3: #3de0c8;
+  --composer-border-4: #86d0ad;
+  --composer-border-width: 1px;
+  --composer-glow-opacity: 0.48;
+  --composer-glow-blur: 8px;
+  --composer-glow-spread: 1.5px;
   color-scheme: dark;
 }
 

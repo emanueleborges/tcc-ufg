@@ -1083,14 +1083,115 @@
 }
 
 .composer-box {
+  --composer-angle: 0deg;
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
   padding: 0.75rem 0.85rem 0.7rem;
   border-radius: 22px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--line);
-  box-shadow: var(--shadow);
+  background: transparent;
+  border: 1px solid transparent;
+  animation: composer-border-spin 5s linear infinite;
+}
+
+.composer-box::before,
+.composer-box::after {
+  content: '';
+  position: absolute;
+  border-radius: inherit;
+  pointer-events: none;
+  background: conic-gradient(
+    from var(--composer-angle, 0deg),
+    var(--composer-border-1),
+    var(--composer-border-2),
+    var(--composer-border-3),
+    var(--composer-border-4),
+    var(--composer-border-1)
+  );
+}
+
+/* Sombra colada à borda, só por fora, sumindo com a distância */
+.composer-box::after {
+  inset: calc(-1 * var(--composer-glow-spread, 1.5px));
+  z-index: 0;
+  opacity: var(--composer-glow-opacity, 0.5);
+  /* blur cria o fade: forte junto à borda, some ao se afastar */
+  filter: blur(var(--composer-glow-blur, 7px));
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  padding: var(--composer-glow-spread, 1.5px);
+}
+
+/* Preenche o interior + borda animada (tampa qualquer bleed interno) */
+.composer-box::before {
+  inset: 0;
+  z-index: 1;
+  padding: var(--composer-border-width, 1px);
+  background:
+    linear-gradient(var(--bg-elevated), var(--bg-elevated)) content-box,
+    conic-gradient(
+      from var(--composer-angle, 0deg),
+      var(--composer-border-1),
+      var(--composer-border-2),
+      var(--composer-border-3),
+      var(--composer-border-4),
+      var(--composer-border-1)
+    ) border-box;
+  background-clip: content-box, border-box;
+  -webkit-mask: none;
+  mask: none;
+}
+
+.composer-box > * {
+  position: relative;
+  z-index: 2;
+}
+
+@property --composer-angle {
+  syntax: '<angle>';
+  inherits: true;
+  initial-value: 0deg;
+}
+
+@keyframes composer-border-spin {
+  to {
+    --composer-angle: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .composer-box {
+    animation: none;
+  }
+
+  .composer-box::before {
+    background:
+      linear-gradient(var(--bg-elevated), var(--bg-elevated)) content-box,
+      linear-gradient(
+        120deg,
+        var(--composer-border-1),
+        var(--composer-border-2),
+        var(--composer-border-3)
+      ) border-box;
+    background-clip: content-box, border-box;
+  }
+
+  .composer-box::after {
+    background: linear-gradient(
+      120deg,
+      var(--composer-border-1),
+      var(--composer-border-2),
+      var(--composer-border-3)
+    );
+    opacity: 0.16;
+  }
 }
 
 .composer-box textarea {
