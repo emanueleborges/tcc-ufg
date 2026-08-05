@@ -5,14 +5,13 @@ interface Props {
   sourceId?: string
 }
 
-export function CitationPanel({ citations, sourceId }: Props) {
+export function CitationPanel({ citations }: Props) {
   if (!citations.length) return null
-  const label = sourceId === 'internet' ? 'Referências' : 'Trechos usados'
 
   return (
     <details className="citations">
       <summary>
-        {label} ({citations.length})
+        Referências ({citations.length})
       </summary>
       <ul>
         {citations.map((c, i) => (

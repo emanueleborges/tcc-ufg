@@ -67,6 +67,41 @@ class Improvement:
 
 
 @dataclass(frozen=True)
+class PromptInjectionFinding:
+    """Indício de possível injeção de prompt no texto da petição."""
+
+    pattern_id: str
+    severity: str
+    description: str
+    excerpt: str
+    matched: str
+    owasp_categories: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class PromptInjectionReport:
+    """Resultado da varredura de injeção de prompt (alinhado ao OWASP LLM Top 10)."""
+
+    risk: str
+    score: int
+    summary: str
+    findings: list[PromptInjectionFinding]
+    scanned_chars: int = 0
+    # OWASP Top 10 for LLM Applications 2025
+    owasp_id: str = "LLM01:2025"
+    owasp_name: str = "Prompt Injection"
+    owasp_url: str = "https://genai.owasp.org/llmrisk/llm01-prompt-injection/"
+    attack_types: tuple[str, ...] = ()
+    techniques: tuple[str, ...] = ()
+    objectives: tuple[str, ...] = ()
+    verdict: str = "clean"  # clean | suspicious | malicious
+
+    @property
+    def blocked_for_llm(self) -> bool:
+        return self.risk in {"high", "critical"}
+
+
+@dataclass(frozen=True)
 class ReviewResult:
     """Resultado da análise crítica de uma petição."""
 
@@ -77,6 +112,7 @@ class ReviewResult:
     suggestions: list[str]
     similar_chunks: list[SimilarChunk]
     markdown: str
+    prompt_injection: PromptInjectionReport | None = None
 
 
 @dataclass(frozen=True)
@@ -87,6 +123,18 @@ class RecreatedPetition:
     web_references: list[WebReference]
     used_ollama: bool
     warnings: list[str] = field(default_factory=list)
+
+
+@dataclass(frozen=True)
+class ScrapingResult:
+    """Resumo de uma execução do scraper."""
+
+    total_documents: int
+    new_accepted: int
+    new_rejected: int
+    new_partial: int
+    candidates_found: int
+    message: str
 
 
 @dataclass(frozen=True)
@@ -101,7 +149,7 @@ class ScrapingCandidate:
 
 @dataclass(frozen=True)
 class SavedDocument:
-    """Documento aceito e armazenado pelo scraper."""
+    """Documento baixado e armazenado pelo scraper (aceito ou rejeitado)."""
 
     file_name: str
     url: str
@@ -110,3 +158,5 @@ class SavedDocument:
     score: int
     matched_terms: list[str]
     sha256: str
+    outcome: str = "indefinido"
+    status: str = "aceita"  # aceita | rejeitada | parcial

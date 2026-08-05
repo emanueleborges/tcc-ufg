@@ -2,9 +2,13 @@ import type {
   ChatCompletionResponse,
   ChatMessageIn,
   ChatSettings,
+  HumanValidationCreateRequest,
+  HumanValidationListResponse,
+  HumanValidationPayload,
   IndexRebuildResponse,
   IndexStatusResponse,
   ModelsListResponse,
+  PersonasListResponse,
   ScrapeResponse,
   UploadResponse,
 } from './types'
@@ -42,8 +46,13 @@ export async function sendChat(params: {
       rag_top_k: params.settings.ragTopK,
       web_max_results: params.settings.webMaxResults,
       use_internet_on_recreate: params.settings.useInternetOnRecreate,
+      persona_id: params.settings.personaId,
     }),
   })
+}
+
+export async function listPersonas(): Promise<PersonasListResponse> {
+  return request<PersonasListResponse>('/v1/personas')
 }
 
 export async function uploadPetition(file: File): Promise<UploadResponse> {
@@ -143,4 +152,18 @@ export async function scrapePetitions(
 ): Promise<ScrapeResponse> {
   const result = await consumeNdjsonStream('/v1/scrape/stream', onProgress)
   return result as ScrapeResponse
+}
+
+export async function submitHumanValidation(
+  body: HumanValidationCreateRequest,
+): Promise<HumanValidationPayload> {
+  return request('/v1/validations', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
+}
+
+export async function listHumanValidations(): Promise<HumanValidationListResponse> {
+  return request('/v1/validations')
 }

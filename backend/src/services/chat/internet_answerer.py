@@ -14,7 +14,14 @@ from src.domain.chat import (
 )
 from src.domain.entities import WebReference
 from src.infrastructure.nlp.text_utils import short_excerpt
-from src.services.chat.prompts import INTERNET_USER_TEMPLATE, SYSTEM_INTERNET
+from src.services.chat.personas import get_persona
+from src.services.chat.prompts import (
+    INTERNET_USER_TEMPLATE,
+    SYSTEM_INTERNET,
+    resolve_persona_id,
+    resolve_system_prompt,
+    resolve_user_message,
+)
 
 
 class InternetAnswerer(ChatAnswerPort):
@@ -57,13 +64,16 @@ class InternetAnswerer(ChatAnswerPort):
                 intent=self.intent,
             )
 
+        persona = get_persona(resolve_persona_id(context))
         web_context = _format_references(references)
+        steered_question = resolve_user_message(user_message, context)
         user_prompt = INTERNET_USER_TEMPLATE.format(
-            question=user_message, context=web_context
+            question=steered_question,
+            context=web_context,
         )
         text = self._llm.chat(
             [ChatMessage(role=ChatRole.USER, content=user_prompt)],
-            system_prompt=SYSTEM_INTERNET,
+            system_prompt=resolve_system_prompt(SYSTEM_INTERNET, context),
             model=context.get("ollama_model"),
         )
         return ChatAnswer(
@@ -71,6 +81,10 @@ class InternetAnswerer(ChatAnswerPort):
             source=AnswerSource.INTERNET,
             intent=self.intent,
             citations=[_to_citation(ref) for ref in references],
+            extra={
+                "persona_id": persona.id,
+                "persona_label": persona.label,
+            },
         )
 
 

@@ -29,9 +29,15 @@ downloads_peticoes/aceitas/*
 !downloads_peticoes/aceitas/.gitkeep
 downloads_peticoes/rejeitadas/*
 !downloads_peticoes/rejeitadas/.gitkeep
+downloads_peticoes/parcial/*
+!downloads_peticoes/parcial/.gitkeep
 downloads_peticoes/metadata.json
 downloads_peticoes/metadata.csv
 
 # Relatórios gerados (PDF e recriação); Markdown de corpus pode ser versionado
 relatorios/*.pdf
 relatorios/peticao_recriada.*
+
+# Validações humanas (JSON/MD gerados; mantém a pasta)
+validacoes/*
+!validacoes/.gitkeep

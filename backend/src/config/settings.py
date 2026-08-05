@@ -49,6 +49,7 @@ class PathsSettings:
     index_dir: Path = field(default_factory=lambda: _project_root() / "indice_juridico")
     reports_dir: Path = field(default_factory=lambda: _project_root() / "relatorios")
     uploads_dir: Path = field(default_factory=lambda: _project_root() / "uploads")
+    validations_dir: Path = field(default_factory=lambda: _project_root() / "validacoes")
 
     @property
     def accepted_pdfs_dir(self) -> Path:
@@ -58,38 +59,75 @@ class PathsSettings:
     def rejected_pdfs_dir(self) -> Path:
         return self.downloads_dir / "rejeitadas"
 
+    @property
+    def partial_pdfs_dir(self) -> Path:
+        return self.downloads_dir / "parcial"
+
 
 @dataclass(frozen=True)
 class ScrapingSettings:
     """Parâmetros do baixador de PDFs públicos."""
 
-    download_limit: int = field(default_factory=lambda: _env_int("SCRAPING_DOWNLOAD_LIMIT", 30))
-    max_results: int = field(default_factory=lambda: _env_int("SCRAPING_MAX_RESULTS", 80))
-    max_links_per_page: int = field(default_factory=lambda: _env_int("SCRAPING_MAX_LINKS_PER_PAGE", 12))
+    download_limit: int = field(
+        default_factory=lambda: _env_int("SCRAPING_DOWNLOAD_LIMIT", 100)
+    )
+    min_corpus_size: int = field(
+        default_factory=lambda: _env_int("SCRAPING_MIN_CORPUS_SIZE", 100)
+    )
+    max_results: int = field(default_factory=lambda: _env_int("SCRAPING_MAX_RESULTS", 40))
+    max_links_per_page: int = field(
+        default_factory=lambda: _env_int("SCRAPING_MAX_LINKS_PER_PAGE", 24)
+    )
     http_timeout: int = field(default_factory=lambda: _env_int("SCRAPING_HTTP_TIMEOUT", 25))
-    request_pause: float = field(default_factory=lambda: _env_float("SCRAPING_REQUEST_PAUSE", 0.8))
-    keep_rejected: bool = field(default_factory=lambda: _env_bool("SCRAPING_KEEP_REJECTED", False))
-    max_runtime_seconds: int = field(default_factory=lambda: _env_int("SCRAPING_MAX_RUNTIME_SECONDS", 15 * 60))
-    max_file_size_bytes: int = field(default_factory=lambda: _env_int("SCRAPING_MAX_FILE_SIZE_BYTES", 30 * 1024 * 1024))
+    request_pause: float = field(
+        default_factory=lambda: _env_float("SCRAPING_REQUEST_PAUSE", 0.6)
+    )
+    search_pause: float = field(
+        default_factory=lambda: _env_float("SCRAPING_SEARCH_PAUSE", 1.2)
+    )
+    # DDGS costuma falhar por DNS/captcha; HTML DDG/Brave é o caminho padrão.
+    use_ddgs: bool = field(default_factory=lambda: _env_bool("SCRAPING_USE_DDGS", False))
+    # Sempre persiste aceitas e rejeitadas (pode forçar False só via env em emergência).
+    keep_rejected: bool = field(
+        default_factory=lambda: _env_bool("SCRAPING_KEEP_REJECTED", True)
+    )
+    max_runtime_seconds: int = field(
+        default_factory=lambda: _env_int("SCRAPING_MAX_RUNTIME_SECONDS", 45 * 60)
+    )
+    max_file_size_bytes: int = field(
+        default_factory=lambda: _env_int("SCRAPING_MAX_FILE_SIZE_BYTES", 30 * 1024 * 1024)
+    )
     user_agent: str = (
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36"
     )
+    # Queries simples: aspas excessivas zeram recall no DDG/Brave HTML.
     queries: tuple[str, ...] = (
-        '"petição inicial" "ação de indenização" "dano moral" "procedente" filetype:pdf',
-        '"petição inicial" "danos morais" "pedido procedente" filetype:pdf',
-        '"ação de indenização por danos morais" "julgo procedente" "petição inicial" filetype:pdf',
-        '"indenização por dano moral" "sentença procedente" "petição inicial" filetype:pdf',
-        '"danos morais" "condeno" "petição inicial" filetype:pdf',
-        '"modelo de petição inicial" "danos morais" "procedente" filetype:pdf',
-        '"petição inicial" "dano moral" "sentença" "procedente" filetype:pdf',
-        '"petição inicial" "dano moral" "julgo procedente" filetype:pdf',
-        '"petição inicial" "danos morais" "julgo parcialmente procedente" filetype:pdf',
-        '"indenização por dano moral" "petição inicial" "procedência do pedido" filetype:pdf',
-        '"ação indenizatória" "dano moral" "julgo procedente" filetype:pdf',
-        '"ação de reparação por danos morais" "julgo procedente" filetype:pdf',
-        '"danos morais" "sentença" "pedido procedente" "petição inicial" filetype:pdf',
-        '"dano moral" "petição inicial" "recurso provido" filetype:pdf',
+        # Procedentes / deferidos
+        "peticao inicial dano moral filetype:pdf",
+        "julgo procedente dano moral peticao filetype:pdf",
+        "sentenca procedente indenizacao dano moral pdf",
+        "procedencia do pedido dano moral filetype:pdf",
+        "acao indenizatoria consumidor negativacao pdf",
+        "danos morais condeno peticao inicial pdf",
+        "tjmg dano moral procedente filetype:pdf",
+        "conjur peticao inicial danos morais pdf",
+        # Improcedentes / indeferidos (rejeitadas/)
+        "julgo improcedente dano moral filetype:pdf",
+        "indenizacao danos morais improcedente pdf",
+        "improcedencia do pedido dano moral filetype:pdf",
+        "recurso desprovido danos morais pdf",
+        "nego provimento indenizacao dano moral pdf",
+        "indeferimento peticao inicial dano moral pdf",
+        "tutela urgencia indeferida dano moral pdf",
+        "tjrj dano moral improcedente filetype:pdf",
+        "acordao dano moral nao provido pdf",
+        "sentenca juizado especial dano moral improcedente pdf",
+        # Parcialmente procedentes (parcial/)
+        "julgo parcialmente procedente dano moral filetype:pdf",
+        "procedencia parcial indenizacao dano moral pdf",
+        "provimento parcial danos morais filetype:pdf",
+        "parcialmente procedente peticao inicial pdf",
     )
 
 
@@ -112,7 +150,7 @@ class OllamaSettings:
     """Parâmetros para integração com Ollama local."""
 
     host: str = field(default_factory=lambda: os.getenv("OLLAMA_HOST", "http://localhost:11434"))
-    default_model: str = field(default_factory=lambda: os.getenv("OLLAMA_MODEL", "llama3.2:1b"))
+    default_model: str = field(default_factory=lambda: os.getenv("OLLAMA_MODEL", "llama3.1:8b"))
     timeout_seconds: int = field(default_factory=lambda: _env_int("OLLAMA_TIMEOUT", 240))
     temperature: float = field(default_factory=lambda: _env_float("OLLAMA_TEMPERATURE", 0.2))
     num_ctx: int = field(default_factory=lambda: _env_int("OLLAMA_NUM_CTX", 8192))

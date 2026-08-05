@@ -7,7 +7,7 @@ const WELCOME: UiMessage = {
   role: 'assistant',
   content:
     'Olá. Sou o **Crítico Jurídico Inteligente**.\n\n' +
-    'Pergunte sobre dano moral, petições ou jurisprudência — eu roteio automaticamente entre **RAG**, **Ollama** e **Internet**, e mostro a fonte da resposta.\n\n' +
+    'Selecione uma **persona jurídica** no composer (padrão: Geral) e pergunte sobre petições ou jurisprudência — eu roteio entre **RAG**, **Ollama** e **Internet**.\n\n' +
     'Anexe um PDF e peça *“analise minha petição”* ou *“recrie esta petição”*.',
   source: {
     id: 'system',
@@ -20,6 +20,7 @@ const DEFAULT_SETTINGS: ChatSettings = {
   ragTopK: 8,
   webMaxResults: 5,
   useInternetOnRecreate: true,
+  personaId: 'geral',
 }
 
 function uid() {
@@ -28,7 +29,7 @@ function uid() {
 
 export function useChat() {
   const [messages, setMessages] = useState<UiMessage[]>([WELCOME])
-  const [model, setModel] = useState('llama3:latest')
+  const [model, setModel] = useState('llama3.1:8b')
   const [settings, setSettings] = useState<ChatSettings>(DEFAULT_SETTINGS)
   const [petitionId, setPetitionId] = useState<string | null>(null)
   const [petitionName, setPetitionName] = useState<string | null>(null)
@@ -110,6 +111,7 @@ export function useChat() {
           content: response.choices[0]?.message.content ?? '',
           source: response.source,
           routing: response.routing,
+          persona: response.persona,
           citations: response.citations,
           model: response.model,
           analysis: response.analysis,

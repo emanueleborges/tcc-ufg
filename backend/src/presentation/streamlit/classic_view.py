@@ -64,11 +64,11 @@ def _render_sidebar(container: AppContainer) -> None:
 def _run_scraping(container: AppContainer) -> None:
     with st.spinner("Baixando PDFs. Isso pode levar alguns minutos..."):
         try:
-            total = container.download_petitions_use_case.execute()
+            result = container.download_petitions_use_case.execute()
         except Exception as exc:  # noqa: BLE001
             st.error(f"Falha ao baixar PDFs: {exc}")
             return
-    st.success(f"Download concluído. Total de PDFs na base: {total}")
+    st.success(result.message)
 
 
 def _rebuild_index(container: AppContainer) -> None:

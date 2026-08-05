@@ -15,7 +15,7 @@ from src.domain.chat import (
     Citation,
     Intent,
 )
-from src.domain.entities import ReviewResult
+from src.infrastructure.nlp.case_outcome import outcome_label
 from src.infrastructure.nlp.text_utils import short_excerpt
 
 
@@ -65,13 +65,14 @@ class AnalyzePetitionAnswerer(ChatAnswerPort):
             )
 
         return ChatAnswer(
-            text=_summarize_review(review),
+            text=_analysis_message(review),
             source=AnswerSource.PETITION_ANALYSIS,
             intent=self.intent,
             citations=[
                 Citation(
                     title=item.chunk.file_name,
                     detail=(
+                        f"Resultado: {outcome_label(str(item.chunk.features.get('resultado', 'indefinido')))} · "
                         f"Seção: {item.chunk.section} · Sim: {item.score:.3f}\n"
                         f"{short_excerpt(item.chunk.text, 280)}"
                     ),
@@ -80,6 +81,24 @@ class AnalyzePetitionAnswerer(ChatAnswerPort):
             ],
             extra={"review": review},
         )
+
+
+def _analysis_message(review) -> str:
+    injection = getattr(review, "prompt_injection", None)
+    base = "Análise concluída. Os detalhes estão no painel abaixo."
+    if injection is None or injection.risk == "none":
+        return (
+            f"{base} Varredura de injeção de prompt: nenhum indício relevante."
+        )
+    alert = (
+        f"⚠️ Segurança: possível injeção de prompt (risco **{injection.risk}**, "
+        f"score {injection.score}/100). {injection.summary}"
+    )
+    if injection.blocked_for_llm:
+        alert += (
+            " A recriação com LLM ficará bloqueada até o documento ser limpo."
+        )
+    return f"{base}\n\n{alert}"
 
 
 class RecreatePetitionAnswerer(ChatAnswerPort):
@@ -122,12 +141,27 @@ class RecreatePetitionAnswerer(ChatAnswerPort):
                 documents=documents,
                 embeddings=embeddings,
             )
+            injection = review.prompt_injection
+            if injection is not None and injection.blocked_for_llm:
+                return ChatAnswer(
+                    text=(
+                        "Recriação bloqueada por segurança.\n\n"
+                        f"A petição anexada apresentou risco **{injection.risk}** "
+                        f"de injeção de prompt (score {injection.score}/100). "
+                        f"{injection.summary}\n\n"
+                        "Remova trechos adversários do PDF e peça a análise novamente "
+                        "antes de recriar com o LLM."
+                    ),
+                    source=AnswerSource.SYSTEM,
+                    intent=self.intent,
+                    extra={"review": review},
+                )
             recreated = self._recreate_petition.execute(
                 petition_path=Path(petition_path_value),
                 review=review,
                 use_internet=bool(context.get("use_internet", True)),
                 use_ollama=True,
-                ollama_model=str(context.get("ollama_model") or "llama3:latest"),
+                ollama_model=str(context.get("ollama_model") or "llama3.1:8b"),
             )
         except Exception as exc:  # noqa: BLE001
             return ChatAnswer(
@@ -153,27 +187,3 @@ class RecreatePetitionAnswerer(ChatAnswerPort):
             ],
             extra={"recreated": recreated, "review": review},
         )
-
-
-def _summarize_review(review: ReviewResult) -> str:
-    lines: list[str] = ["**Análise crítica concluída.**", ""]
-    if review.scores:
-        lines.append("**Scores (0–10):**")
-        for name, score in review.scores.items():
-            lines.append(f"- {name.capitalize()}: {score}")
-        lines.append("")
-    if review.problems:
-        lines.append("**Pontos fracos detectados:**")
-        for problem in review.problems:
-            lines.append(f"- {problem}")
-        lines.append("")
-    if review.suggestions:
-        lines.append("**Sugestões práticas:**")
-        for suggestion in review.suggestions:
-            lines.append(f"- {suggestion}")
-        lines.append("")
-    lines.append(
-        "_Relatório completo disponível no painel da direita ou em "
-        "`relatorios/relatorio_critico.md`._"
-    )
-    return "\n".join(lines)

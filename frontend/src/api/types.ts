@@ -35,9 +35,35 @@ export interface ChatCompletionResponse {
   }>
   source: SourceInfo
   routing: RoutingInfo
+  persona?: PersonaOut | null
   citations: Citation[]
   analysis?: AnalysisPayload | null
   recreation?: RecreationPayload | null
+}
+
+export interface PromptInjectionFinding {
+  pattern_id: string
+  severity: string
+  description: string
+  excerpt: string
+  matched?: string
+  owasp_categories?: string[]
+}
+
+export interface PromptInjectionReport {
+  risk: 'none' | 'low' | 'medium' | 'high' | 'critical'
+  score: number
+  summary: string
+  findings: PromptInjectionFinding[]
+  scanned_chars: number
+  blocked_for_llm: boolean
+  owasp_id?: string
+  owasp_name?: string
+  owasp_url?: string
+  attack_types?: string[]
+  techniques?: string[]
+  objectives?: string[]
+  verdict?: 'clean' | 'suspicious' | 'malicious'
 }
 
 export interface AnalysisPayload {
@@ -46,12 +72,75 @@ export interface AnalysisPayload {
   suggestions: string[]
   features: Record<string, string | number | boolean>
   markdown: string
+  prompt_injection?: PromptInjectionReport | null
 }
 
 export interface RecreationPayload {
   markdown: string
   warnings: string[]
   used_ollama: boolean
+}
+
+export type ProblemVerdict = 'confirmed' | 'partial' | 'rejected'
+
+export interface ProblemAssessment {
+  problem: string
+  verdict: ProblemVerdict
+  note?: string
+}
+
+export interface ComparisonMetrics {
+  mae_scores: number
+  agreement_rate: number
+  dimension_gaps: Record<string, number>
+  problems_confirmed: number
+  problems_partial: number
+  problems_rejected: number
+  summary: string
+}
+
+export interface HumanValidationPayload {
+  validation_id: string
+  petition_id: string
+  petition_name: string
+  reviewer_name: string
+  created_at: string
+  prototype_scores: Record<string, number>
+  human_scores: Record<string, number>
+  problem_assessments: ProblemAssessment[]
+  documentation_ok: boolean
+  textual_cohesion_ok: boolean
+  argumentative_consistency_ok: boolean
+  legal_basis_ok: boolean
+  final_quality: number
+  comments: string
+  comparison: ComparisonMetrics
+  markdown_report: string
+}
+
+export interface HumanValidationCreateRequest {
+  petition_id: string
+  petition_name: string
+  reviewer_name: string
+  prototype_scores: Record<string, number>
+  human_scores: Record<string, number>
+  problem_assessments: ProblemAssessment[]
+  documentation_ok: boolean
+  textual_cohesion_ok: boolean
+  argumentative_consistency_ok: boolean
+  legal_basis_ok: boolean
+  final_quality: number
+  comments: string
+}
+
+export interface HumanValidationListResponse {
+  items: HumanValidationPayload[]
+  summary: {
+    count: number
+    mean_mae: number | null
+    mean_agreement_rate: number | null
+    mean_final_quality: number | null
+  }
 }
 
 export interface UploadResponse {
@@ -79,6 +168,10 @@ export interface IndexRebuildResponse {
 export interface ScrapeResponse {
   total_documents: number
   message: string
+  new_accepted?: number
+  new_rejected?: number
+  new_partial?: number
+  candidates_found?: number
 }
 
 export interface ModelOut {
@@ -93,10 +186,22 @@ export interface ModelsListResponse {
   data: ModelOut[]
 }
 
+export interface PersonaOut {
+  id: string
+  label: string
+  description: string
+}
+
+export interface PersonasListResponse {
+  default_id: string
+  data: PersonaOut[]
+}
+
 export interface ChatSettings {
   ragTopK: number
   webMaxResults: number
   useInternetOnRecreate: boolean
+  personaId: string
 }
 
 export interface UiMessage {
@@ -105,6 +210,7 @@ export interface UiMessage {
   content: string
   source?: SourceInfo
   routing?: RoutingInfo
+  persona?: PersonaOut | null
   citations?: Citation[]
   model?: string
   attachmentName?: string

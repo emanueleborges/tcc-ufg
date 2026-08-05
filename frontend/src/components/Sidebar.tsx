@@ -8,7 +8,6 @@ interface Props {
   onSettingsChange: (patch: Partial<ChatSettings>) => void
   petitionName: string | null
   onClearPetition: () => void
-  onClearChat: () => void
   apiOnline: boolean | null
   indexStatus: IndexStatusResponse | null
   busyAction: 'rebuild' | 'scrape' | null
@@ -26,7 +25,6 @@ export function Sidebar({
   onSettingsChange,
   petitionName,
   onClearPetition,
-  onClearChat,
   apiOnline,
   indexStatus,
   busyAction,
@@ -50,7 +48,7 @@ export function Sidebar({
           id="model"
           value={model}
           onChange={(e) => onModelChange(e.target.value)}
-          placeholder="llama3:latest"
+          placeholder="llama3.1:8b"
           list="model-suggestions"
         />
         <datalist id="model-suggestions">
@@ -158,7 +156,7 @@ export function Sidebar({
           >
             {busyAction === 'scrape'
               ? `Baixando… ${busyPercent ?? 0}%`
-              : 'Baixar PDFs públicos'}
+              : 'Baixar Petições Públicas'}
           </button>
         </div>
         {busyAction && busyPercent != null && (
@@ -185,9 +183,6 @@ export function Sidebar({
         >
           API {apiOnline === true ? 'online' : apiOnline === false ? 'offline' : '…'}
         </p>
-        <button type="button" className="ghost-btn" onClick={onClearChat}>
-          Nova conversa
-        </button>
       </div>
     </aside>
   )

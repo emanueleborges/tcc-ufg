@@ -17,7 +17,7 @@ Projeto de TCC da Universidade Federal de Goiás (UFG): **chatbot jurídico** ba
 
 ## Arquitetura
 
-O projeto segue **Clean Architecture**, com camadas isoladas por responsabilidade:
+O projeto segue **Clean Architecture**, com camadas isoladas por responsabilidade, e **Spec-Driven Development (SDD)** — veja `AGENTS.md` e `specs/`.
 
 ```
 tcc-ufg/
@@ -268,8 +268,9 @@ Todas as configurações ficam em `backend/src/config/settings.py`, com valores 
 | `RAG_ANONYMIZE` | `true` | Anonimiza CPF/CNPJ/processo/email/telefone |
 | `OLLAMA_HOST` | `http://localhost:11434` | Endpoint do Ollama |
 | `OLLAMA_MODEL` | `llama3:latest` | Modelo padrão do Ollama |
-| `SCRAPING_DOWNLOAD_LIMIT` | `30` | Máximo de PDFs novos por execução |
-| `SCRAPING_MAX_RUNTIME_SECONDS` | `900` | Tempo máximo do scraping |
+| `SCRAPING_DOWNLOAD_LIMIT` | `100` | Mínimo de PDFs novos por execução (aceitas + rejeitadas) |
+| `SCRAPING_KEEP_REJECTED` | `true` | Sempre salvar também as rejeitadas |
+| `SCRAPING_MAX_RUNTIME_SECONDS` | `2700` | Tempo máximo do scraping |
 
 ## Troubleshooting
 

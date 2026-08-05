@@ -13,15 +13,19 @@ interface Props {
   source: SourceInfo
   model?: string
   routingMode?: string
+  personaLabel?: string
 }
 
-export function SourceBadge({ source, model, routingMode }: Props) {
+export function SourceBadge({ source, model, routingMode, personaLabel }: Props) {
   const cls = SOURCE_CLASS[source.id] ?? 'badge-system'
   return (
     <div className={`source-badge ${cls}`}>
       <span>
         {source.icon} Fonte: <strong>{source.label}</strong>
       </span>
+      {personaLabel && (
+        <span className="badge-meta">Persona: {personaLabel}</span>
+      )}
       {model && source.id !== 'system' && (
         <span className="badge-meta">Modelo: {model}</span>
       )}

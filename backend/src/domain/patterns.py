@@ -67,6 +67,17 @@ SECTION_PATTERNS: dict[str, list[str]] = {
         r"pede deferimento",
         r"d[áa]-se [àa] causa",
     ],
+    "decisao": [
+        r"dispositivo",
+        r"ante o exposto.? julgo",
+        r"julgo (parcialmente )?(im)?procedente",
+        r"defiro|indefiro",
+        r"nego provimento|dou provimento",
+        r"senten[çc]a",
+        r"ac[óo]rd[ãa]o",
+        r"parecer",
+        r"despacho",
+    ],
 }
 
 FEATURE_PATTERNS: dict[str, str] = {
@@ -116,6 +127,13 @@ FAVORABLE_TERMS: list[str] = [
     "recurso provido",
     "provimento ao recurso",
     "provimento parcial ao recurso",
+    "defiro",
+    "deferido",
+    "deferimento",
+    "tutela concedida",
+    "liminar deferida",
+    "condeno o réu",
+    "condeno a ré",
 ]
 
 NEGATIVE_TERMS: list[str] = [
@@ -126,4 +144,13 @@ NEGATIVE_TERMS: list[str] = [
     "improcedencia do pedido",
     "extingo o processo sem resolução do mérito",
     "extingo o processo sem resolucao do merito",
+    "indefiro",
+    "indeferido",
+    "indeferimento",
+    "nego provimento",
+    "recurso desprovido",
+    "tutela indeferida",
+    "liminar indeferida",
+    "não conheço do recurso",
+    "nao conheco do recurso",
 ]

@@ -21,6 +21,7 @@ export function ChatBubble({ message }: Props) {
           <SourceBadge
             source={message.source}
             model={message.model}
+            personaLabel={message.persona?.label}
             routingMode={
               message.routing?.mode === 'automatic'
                 ? 'automático'

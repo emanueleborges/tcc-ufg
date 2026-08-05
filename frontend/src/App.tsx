@@ -3,10 +3,11 @@ import {
   checkHealth,
   getIndexStatus,
   listModels,
+  listPersonas,
   rebuildIndex,
   scrapePetitions,
 } from './api/client'
-import type { IndexStatusResponse, ModelOut } from './api/types'
+import type { IndexStatusResponse, ModelOut, PersonaOut } from './api/types'
 import { ChatBubble } from './components/ChatBubble'
 import { ChatInput } from './components/ChatInput'
 import { Sidebar } from './components/Sidebar'
@@ -17,6 +18,7 @@ export default function App() {
   const chat = useChat()
   const [apiOnline, setApiOnline] = useState<boolean | null>(null)
   const [models, setModels] = useState<ModelOut[]>([])
+  const [personas, setPersonas] = useState<PersonaOut[]>([])
   const [indexStatus, setIndexStatus] = useState<IndexStatusResponse | null>(null)
   const [busyAction, setBusyAction] = useState<'rebuild' | 'scrape' | null>(null)
   const [busyPercent, setBusyPercent] = useState<number | null>(null)
@@ -40,10 +42,21 @@ export default function App() {
     listModels()
       .then((res) => {
         setModels(res.data)
-        const ollama = res.data.find((m) => m.owned_by === 'ollama')
-        if (ollama) chat.setModel(ollama.id)
+        const ollamaModels = res.data.filter((m) => m.owned_by === 'ollama')
+        const preferred =
+          ollamaModels.find((m) => m.id === 'llama3.1:8b') ?? ollamaModels[0]
+        if (preferred) chat.setModel(preferred.id)
       })
       .catch(() => setModels([]))
+
+    listPersonas()
+      .then((res) => {
+        setPersonas(res.data)
+        if (res.default_id) {
+          chat.updateSettings({ personaId: res.default_id })
+        }
+      })
+      .catch(() => setPersonas([]))
 
     refreshIndexStatus()
     // eslint-disable-next-line react-hooks/exhaustive-deps -- só no mount
@@ -87,9 +100,7 @@ export default function App() {
         if (message) setActionMessage(message)
       })
       setBusyPercent(100)
-      setActionMessage(
-        `${result.message} Total: ${result.total_documents} documentos.`,
-      )
+      setActionMessage(result.message)
     } catch (err) {
       setActionMessage(
         err instanceof Error ? err.message : 'Falha ao baixar PDFs.',
@@ -110,7 +121,6 @@ export default function App() {
         onSettingsChange={chat.updateSettings}
         petitionName={chat.petitionName}
         onClearPetition={chat.clearPetition}
-        onClearChat={chat.clearChat}
         apiOnline={apiOnline}
         indexStatus={indexStatus}
         busyAction={busyAction}
@@ -122,8 +132,17 @@ export default function App() {
 
       <main className="chat-main">
         <header className="chat-header">
-          <h1>Conversa</h1>
-          <p>Roteamento automático entre RAG, Ollama e Internet</p>
+          <div className="chat-header-copy">
+            <h1 className="chat-title">Chat IA</h1>
+            <p>Roteamento automático entre RAG, Ollama e Internet</p>
+          </div>
+          <button
+            type="button"
+            className="new-chat-btn"
+            onClick={chat.clearChat}
+          >
+            Nova conversa
+          </button>
         </header>
 
         {chat.petitionName && (
@@ -162,6 +181,9 @@ export default function App() {
           pendingFile={chat.pendingFile}
           onFileChange={chat.setPendingFile}
           onSend={chat.sendMessage}
+          personas={personas}
+          personaId={chat.settings.personaId}
+          onPersonaChange={(personaId) => chat.updateSettings({ personaId })}
         />
       </main>
     </div>

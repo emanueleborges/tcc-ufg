@@ -15,8 +15,11 @@ from src.application.use_cases import (
     ChatWithAssistantUseCase,
     DownloadPetitionsUseCase,
     GenerateCorpusReportUseCase,
+    GetHumanValidationUseCase,
+    ListHumanValidationsUseCase,
     LoadOrBuildIndexUseCase,
     RecreatePetitionUseCase,
+    SubmitHumanValidationUseCase,
 )
 from src.config.settings import Settings, get_settings
 from src.domain.chat import Intent
@@ -26,6 +29,9 @@ from src.infrastructure.nlp.embedding_engine import SentenceTransformerEmbedding
 from src.infrastructure.pdf.pdf_reader import PdfReader
 from src.infrastructure.pdf.pdf_writer import ReportlabPdfWriter
 from src.infrastructure.persistence.index_repository import FileSystemIndexRepository
+from src.infrastructure.persistence.validation_repository import (
+    FileSystemValidationRepository,
+)
 from src.infrastructure.scraping.pdf_scraper import PdfScraper
 from src.infrastructure.search.duckduckgo_search import DuckDuckGoWebSearch
 from src.services.chat.internet_answerer import InternetAnswerer
@@ -69,6 +75,10 @@ class AppContainer:
     @cached_property
     def index_repository(self) -> FileSystemIndexRepository:
         return FileSystemIndexRepository(self.settings.paths.index_dir)
+
+    @cached_property
+    def validation_repository(self) -> FileSystemValidationRepository:
+        return FileSystemValidationRepository(self.settings.paths.validations_dir)
 
     @cached_property
     def llm_client(self) -> OllamaClient:
@@ -132,6 +142,18 @@ class AppContainer:
     @cached_property
     def generate_corpus_report_use_case(self) -> GenerateCorpusReportUseCase:
         return GenerateCorpusReportUseCase(self.settings.paths)
+
+    @cached_property
+    def submit_human_validation_use_case(self) -> SubmitHumanValidationUseCase:
+        return SubmitHumanValidationUseCase(self.validation_repository)
+
+    @cached_property
+    def list_human_validations_use_case(self) -> ListHumanValidationsUseCase:
+        return ListHumanValidationsUseCase(self.validation_repository)
+
+    @cached_property
+    def get_human_validation_use_case(self) -> GetHumanValidationUseCase:
+        return GetHumanValidationUseCase(self.validation_repository)
 
     # ----- chatbot (LangChain) -----
     @cached_property

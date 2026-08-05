@@ -1,4 +1,8 @@
-import type { AnalysisPayload, RecreationPayload } from '../api/types'
+import type {
+  AnalysisPayload,
+  PromptInjectionReport,
+  RecreationPayload,
+} from '../api/types'
 
 function downloadText(filename: string, content: string, mime: string) {
   const blob = new Blob([content], { type: mime })
@@ -10,19 +14,48 @@ function downloadText(filename: string, content: string, mime: string) {
   URL.revokeObjectURL(url)
 }
 
+const PRIMARY_SCORE_KEYS = [
+  'estrutura',
+  'clareza',
+  'coerencia',
+  'fundamentacao',
+  'consistencia',
+  'elementos_essenciais',
+  'geral',
+]
+
+const RISK_LABEL: Record<PromptInjectionReport['risk'], string> = {
+  none: 'Nenhum',
+  low: 'Baixo',
+  medium: 'Médio',
+  high: 'Alto',
+  critical: 'Crítico',
+}
+
+const VERDICT_LABEL: Record<NonNullable<PromptInjectionReport['verdict']>, string> = {
+  clean: 'Limpo',
+  suspicious: 'Suspeito',
+  malicious: 'Prompt malicioso detectado',
+}
+
 interface AnalysisProps {
   analysis: AnalysisPayload
 }
 
 export function AnalysisPanel({ analysis }: AnalysisProps) {
-  const scoreEntries = Object.entries(analysis.scores)
+  const scoreEntries = Object.entries(analysis.scores).filter(([name]) =>
+    PRIMARY_SCORE_KEYS.includes(name),
+  )
   const featureEntries = Object.entries(analysis.features).sort(([a], [b]) =>
     a.localeCompare(b),
   )
+  const injection = analysis.prompt_injection
 
   return (
     <div className="result-panel">
       <h3>Painel de análise</h3>
+
+      {injection && <InjectionSection report={injection} />}
 
       {scoreEntries.length > 0 && (
         <div className="score-grid">
@@ -91,6 +124,76 @@ export function AnalysisPanel({ analysis }: AnalysisProps) {
         </button>
       )}
     </div>
+  )
+}
+
+function InjectionSection({ report }: { report: PromptInjectionReport }) {
+  const riskClass = `injection-risk is-${report.risk}`
+  const verdict = report.verdict ?? (report.risk === 'none' ? 'clean' : 'suspicious')
+  return (
+    <section className={`injection-panel ${riskClass}`}>
+      <h4>Segurança — injeção de prompt (OWASP)</h4>
+      <p className="injection-summary">
+        Status:{' '}
+        <strong>{VERDICT_LABEL[verdict] ?? verdict}</strong>
+        {' · '}
+        Risco: <strong>{RISK_LABEL[report.risk] ?? report.risk}</strong>
+        {' · '}
+        Score: <strong>{report.score}/100</strong>
+        {report.blocked_for_llm ? ' · Recriação com LLM bloqueada' : ''}
+      </p>
+      <p className="injection-owasp">
+        Framework:{' '}
+        <strong>
+          {report.owasp_id ?? 'LLM01:2025'} — {report.owasp_name ?? 'Prompt Injection'}
+        </strong>
+        {report.owasp_url && (
+          <>
+            {' '}
+            (
+            <a href={report.owasp_url} target="_blank" rel="noreferrer">
+              OWASP GenAI
+            </a>
+            )
+          </>
+        )}
+      </p>
+      {report.attack_types && report.attack_types.length > 0 && (
+        <p>
+          <strong>Tipos:</strong> {report.attack_types.join(' · ')}
+        </p>
+      )}
+      {report.techniques && report.techniques.length > 0 && (
+        <p>
+          <strong>Técnicas:</strong> {report.techniques.join(' · ')}
+        </p>
+      )}
+      {report.objectives && report.objectives.length > 0 && (
+        <p>
+          <strong>Objetivos do ataque:</strong> {report.objectives.join(' · ')}
+        </p>
+      )}
+      <p>{report.summary}</p>
+      {report.findings.length > 0 && (
+        <ul className="injection-findings">
+          {report.findings.map((finding, index) => (
+            <li key={`${finding.pattern_id}-${index}`}>
+              <strong>[{finding.severity}]</strong> {finding.description}
+              {finding.owasp_categories && finding.owasp_categories.length > 0 && (
+                <>
+                  <br />
+                  <span className="injection-cats">
+                    OWASP: {finding.owasp_categories.join(' · ')}
+                  </span>
+                </>
+              )}
+              <br />
+              <code>{finding.matched || finding.excerpt}</code>
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   )
 }
 

@@ -18,6 +18,7 @@ from src.services.benchmarks import BenchmarkMap, compute_corpus_benchmarks
 from src.services.chunk_factory import ChunkFactory
 from src.services.report_renderer import render_review_markdown
 from src.services.scoring import score_review
+from src.services.security.prompt_injection_analyzer import PromptInjectionAnalyzer
 from src.services.semantic_search import SemanticSearchService
 
 _FULL_TEXT_QUERY_LIMIT = 6000
@@ -31,10 +32,12 @@ class AnalyzePetitionUseCase:
         chunk_factory: ChunkFactory,
         semantic_search: SemanticSearchService,
         rag_settings: RagSettings,
+        prompt_injection_analyzer: PromptInjectionAnalyzer | None = None,
     ) -> None:
         self._chunk_factory = chunk_factory
         self._semantic_search = semantic_search
         self._rag = rag_settings
+        self._injection_analyzer = prompt_injection_analyzer or PromptInjectionAnalyzer()
 
     def execute(
         self,
@@ -45,6 +48,10 @@ class AnalyzePetitionUseCase:
     ) -> ReviewResult:
         petition_chunks, petition_summary = self._chunk_factory.build_for_pdf(petition_path)
         full_text = "\n\n".join(chunk.text for chunk in petition_chunks)
+        injection = self._injection_analyzer.analyze_petition(
+            text=full_text,
+            pdf_path=petition_path,
+        )
         features = petition_summary.features
         scores = score_review(features, documents)
         benchmarks = compute_corpus_benchmarks(documents)
@@ -57,6 +64,18 @@ class AnalyzePetitionUseCase:
         )
 
         problems, suggestions = _detect_problems_and_suggestions(features, benchmarks)
+        if injection.risk != "none":
+            problems = [
+                f"[Segurança] Possível injeção de prompt (risco {injection.risk}): "
+                f"{injection.summary}",
+                *problems,
+            ]
+            if injection.blocked_for_llm:
+                suggestions = [
+                    "Não envie este PDF para recriação com LLM até remover trechos adversários.",
+                    *suggestions,
+                ]
+
         markdown = render_review_markdown(
             petition_path=str(petition_path),
             scores=scores,
@@ -66,6 +85,15 @@ class AnalyzePetitionUseCase:
             suggestions=suggestions,
             similar=similar,
         )
+        if injection.risk != "none":
+            markdown = (
+                f"## Segurança — injeção de prompt\n\n"
+                f"- **Risco:** `{injection.risk}`\n"
+                f"- **Score:** {injection.score}/100\n"
+                f"- {injection.summary}\n\n"
+                + markdown
+            )
+
         return ReviewResult(
             petition_path=str(petition_path),
             scores=scores,
@@ -74,6 +102,7 @@ class AnalyzePetitionUseCase:
             suggestions=suggestions,
             similar_chunks=similar,
             markdown=markdown,
+            prompt_injection=injection,
         )
 
 

@@ -37,11 +37,19 @@ class BuildIndexUseCase:
             if on_progress:
                 on_progress(max(0, min(100, percent)), message)
 
-        report(1, "Listando PDFs aceitos…")
-        pdfs = sorted(self._paths.accepted_pdfs_dir.glob("*.pdf"))
+        report(1, "Listando PDFs da base (aceitas + rejeitadas + parcial)…")
+        self._paths.accepted_pdfs_dir.mkdir(parents=True, exist_ok=True)
+        self._paths.rejected_pdfs_dir.mkdir(parents=True, exist_ok=True)
+        self._paths.partial_pdfs_dir.mkdir(parents=True, exist_ok=True)
+        pdfs = sorted(
+            list(self._paths.accepted_pdfs_dir.glob("*.pdf"))
+            + list(self._paths.rejected_pdfs_dir.glob("*.pdf"))
+            + list(self._paths.partial_pdfs_dir.glob("*.pdf"))
+        )
         if not pdfs:
             raise RuntimeError(
-                f"Nenhum PDF encontrado em {self._paths.accepted_pdfs_dir}. "
+                f"Nenhum PDF encontrado em {self._paths.accepted_pdfs_dir}, "
+                f"{self._paths.rejected_pdfs_dir} ou {self._paths.partial_pdfs_dir}. "
                 "Rode o comando de scraping primeiro."
             )
 

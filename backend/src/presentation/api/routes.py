@@ -16,6 +16,7 @@ from fastapi.responses import StreamingResponse
 
 from src.container import AppContainer
 from src.domain.chat import ChatMessage, ChatRole
+from src.domain.validation import HumanValidation, HumanValidationInput, ProblemAssessment
 from src.presentation.api.deps import get_container
 from src.presentation.api.schemas import (
     AnalysisOut,
@@ -24,16 +25,26 @@ from src.presentation.api.schemas import (
     ChatCompletionResponse,
     ChatMessageOut,
     CitationOut,
+    ComparisonOut,
     HealthResponse,
+    HumanValidationCreateRequest,
+    HumanValidationListResponse,
+    HumanValidationOut,
     IndexRebuildResponse,
     IndexStatusResponse,
     ModelOut,
     ModelsListResponse,
+    PersonaOut,
+    PersonasListResponse,
+    ProblemAssessmentOut,
+    PromptInjectionFindingOut,
+    PromptInjectionOut,
     RecreationOut,
     RoutingOut,
     ScrapeResponse,
     SourceOut,
     UploadResponse,
+    ValidationSummaryOut,
 )
 
 router = APIRouter()
@@ -54,13 +65,22 @@ def health() -> HealthResponse:
 def list_models(container: AppContainer = Depends(get_container)) -> ModelsListResponse:
     """Lista modelos/fontes disponíveis (formato próximo ao OpenAI)."""
     default_model = container.settings.ollama.default_model
-    return ModelsListResponse(
-        data=[
-            ModelOut(
-                id=default_model,
-                owned_by="ollama",
-                description="LLM local (Ollama) usado em chat, RAG e internet.",
-            ),
+    ollama_models = _list_ollama_model_ids(container.settings.ollama.host)
+    if default_model not in ollama_models:
+        ollama_models.insert(0, default_model)
+    else:
+        ollama_models = [default_model] + [m for m in ollama_models if m != default_model]
+
+    data = [
+        ModelOut(
+            id=model_id,
+            owned_by="ollama",
+            description="LLM local (Ollama) usado em chat, RAG e internet.",
+        )
+        for model_id in ollama_models
+    ]
+    data.extend(
+        [
             ModelOut(
                 id="rag",
                 owned_by="critico-juridico",
@@ -77,6 +97,42 @@ def list_models(container: AppContainer = Depends(get_container)) -> ModelsListR
                 description="Análise crítica de petição anexada.",
             ),
         ]
+    )
+    return ModelsListResponse(data=data)
+
+
+def _list_ollama_model_ids(host: str) -> list[str]:
+    """Consulta `/api/tags` do Ollama; em falha devolve lista vazia."""
+    import urllib.error
+    import urllib.request
+
+    base = host.rstrip("/")
+    try:
+        with urllib.request.urlopen(f"{base}/api/tags", timeout=3) as response:
+            payload = json.loads(response.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError, OSError):
+        return []
+
+    models = payload.get("models") or []
+    names: list[str] = []
+    for item in models:
+        name = str(item.get("name") or "").strip()
+        if name and name not in names:
+            names.append(name)
+    return names
+
+
+@router.get("/v1/personas", response_model=PersonasListResponse, tags=["chat"])
+def list_personas() -> PersonasListResponse:
+    """Lista personas jurídicas disponíveis para o chat."""
+    from src.services.chat.personas import DEFAULT_PERSONA_ID, list_personas as _list
+
+    return PersonasListResponse(
+        default_id=DEFAULT_PERSONA_ID,
+        data=[
+            PersonaOut(id=item.id, label=item.label, description=item.description)
+            for item in _list()
+        ],
     )
 
 
@@ -112,6 +168,7 @@ def chat_completions(
         "web_max_results": body.web_max_results,
         "use_internet": body.use_internet_on_recreate,
         "petition_path": petition_path,
+        "persona_id": body.persona_id,
     }
 
     try:
@@ -125,6 +182,7 @@ def chat_completions(
 
     analysis = _extract_analysis(answer.extra)
     recreation = _extract_recreation(answer.extra)
+    persona = _resolve_persona_out(body.persona_id, answer.extra)
 
     return ChatCompletionResponse(
         id=f"chatcmpl-{uuid.uuid4().hex[:24]}",
@@ -145,6 +203,7 @@ def chat_completions(
             mode=str(answer.extra.get("classification_mode", "default")),
             reason=str(answer.extra.get("classification_reason", "")),
         ),
+        persona=persona,
         citations=[
             CitationOut(title=c.title, detail=c.detail, url=c.url)
             for c in answer.citations
@@ -159,16 +218,63 @@ def chat_completions(
     )
 
 
+def _resolve_persona_out(persona_id: str, extra: dict) -> PersonaOut:
+    from src.services.chat.personas import get_persona
+
+    persona = get_persona(str(extra.get("persona_id") or persona_id))
+    return PersonaOut(
+        id=persona.id,
+        label=str(extra.get("persona_label") or persona.label),
+        description=persona.description,
+    )
+
+
 def _extract_analysis(extra: dict) -> AnalysisOut | None:
     review = extra.get("review")
     if review is None:
         return None
+    injection = getattr(review, "prompt_injection", None)
+    prompt_injection = None
+    if injection is not None:
+        prompt_injection = PromptInjectionOut(
+            risk=str(getattr(injection, "risk", "none") or "none"),  # type: ignore[arg-type]
+            score=int(getattr(injection, "score", 0) or 0),
+            summary=str(getattr(injection, "summary", "") or ""),
+            findings=[
+                PromptInjectionFindingOut(
+                    pattern_id=str(getattr(item, "pattern_id", "")),
+                    severity=str(getattr(item, "severity", "")),
+                    description=str(getattr(item, "description", "")),
+                    excerpt=str(getattr(item, "excerpt", "")),
+                    matched=str(getattr(item, "matched", "")),
+                    owasp_categories=list(getattr(item, "owasp_categories", ()) or ()),
+                )
+                for item in list(getattr(injection, "findings", []) or [])
+            ],
+            scanned_chars=int(getattr(injection, "scanned_chars", 0) or 0),
+            blocked_for_llm=bool(getattr(injection, "blocked_for_llm", False)),
+            owasp_id=str(getattr(injection, "owasp_id", "LLM01:2025") or "LLM01:2025"),
+            owasp_name=str(getattr(injection, "owasp_name", "Prompt Injection") or "Prompt Injection"),
+            owasp_url=str(
+                getattr(
+                    injection,
+                    "owasp_url",
+                    "https://genai.owasp.org/llmrisk/llm01-prompt-injection/",
+                )
+                or "https://genai.owasp.org/llmrisk/llm01-prompt-injection/"
+            ),
+            attack_types=list(getattr(injection, "attack_types", ()) or ()),
+            techniques=list(getattr(injection, "techniques", ()) or ()),
+            objectives=list(getattr(injection, "objectives", ()) or ()),
+            verdict=str(getattr(injection, "verdict", "clean") or "clean"),  # type: ignore[arg-type]
+        )
     return AnalysisOut(
         scores=dict(getattr(review, "scores", {}) or {}),
         problems=list(getattr(review, "problems", []) or []),
         suggestions=list(getattr(review, "suggestions", []) or []),
         features=dict(getattr(review, "features", {}) or {}),
         markdown=str(getattr(review, "markdown", "") or ""),
+        prompt_injection=prompt_injection,
     )
 
 
@@ -355,12 +461,16 @@ def rebuild_index_stream(
 )
 def scrape_petitions(container: AppContainer = Depends(get_container)) -> ScrapeResponse:
     try:
-        total = container.download_petitions_use_case.execute()
+        result = container.download_petitions_use_case.execute()
     except Exception as exc:  # noqa: BLE001
         raise HTTPException(status_code=500, detail=str(exc)) from exc
     return ScrapeResponse(
-        total_documents=total,
-        message="Scraping concluído. Revise os PDFs e rode POST /v1/index/rebuild.",
+        total_documents=result.total_documents,
+        message=result.message,
+        new_accepted=result.new_accepted,
+        new_rejected=result.new_rejected,
+        new_partial=result.new_partial,
+        candidates_found=result.candidates_found,
     )
 
 
@@ -375,6 +485,120 @@ def scrape_petitions_stream(
     return StreamingResponse(
         _stream_job(_run_scrape_job, container),
         media_type="application/x-ndjson",
+    )
+
+
+# ---------------------------------------------------------------------------
+# Validação humana (lawyer-in-the-loop)
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/v1/validations",
+    response_model=HumanValidationOut,
+    tags=["validation"],
+    summary="Registra validação humana e compara com o protótipo",
+)
+def create_human_validation(
+    body: HumanValidationCreateRequest,
+    container: AppContainer = Depends(get_container),
+) -> HumanValidationOut:
+    try:
+        validation = container.submit_human_validation_use_case.execute(
+            HumanValidationInput(
+                petition_id=body.petition_id,
+                petition_name=body.petition_name,
+                reviewer_name=body.reviewer_name,
+                prototype_scores=body.prototype_scores,
+                human_scores=body.human_scores,
+                problem_assessments=[
+                    ProblemAssessment(
+                        problem=item.problem,
+                        verdict=item.verdict,
+                        note=item.note,
+                    )
+                    for item in body.problem_assessments
+                ],
+                documentation_ok=body.documentation_ok,
+                textual_cohesion_ok=body.textual_cohesion_ok,
+                argumentative_consistency_ok=body.argumentative_consistency_ok,
+                legal_basis_ok=body.legal_basis_ok,
+                final_quality=body.final_quality,
+                comments=body.comments,
+            )
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=500, detail=str(exc)) from exc
+    return _validation_to_out(validation)
+
+
+@router.get(
+    "/v1/validations",
+    response_model=HumanValidationListResponse,
+    tags=["validation"],
+    summary="Lista validações e resumo de aderência humano × protótipo",
+)
+def list_human_validations(
+    container: AppContainer = Depends(get_container),
+) -> HumanValidationListResponse:
+    items, summary = container.list_human_validations_use_case.execute()
+    return HumanValidationListResponse(
+        items=[_validation_to_out(item) for item in items],
+        summary=ValidationSummaryOut(**summary),
+    )
+
+
+@router.get(
+    "/v1/validations/{validation_id}",
+    response_model=HumanValidationOut,
+    tags=["validation"],
+    summary="Obtém uma validação humana pelo ID",
+)
+def get_human_validation(
+    validation_id: str,
+    container: AppContainer = Depends(get_container),
+) -> HumanValidationOut:
+    validation = container.get_human_validation_use_case.execute(validation_id)
+    if validation is None:
+        raise HTTPException(status_code=404, detail="Validação não encontrada.")
+    return _validation_to_out(validation)
+
+
+def _validation_to_out(validation: HumanValidation) -> HumanValidationOut:
+    return HumanValidationOut(
+        validation_id=validation.validation_id,
+        petition_id=validation.petition_id,
+        petition_name=validation.petition_name,
+        reviewer_name=validation.reviewer_name,
+        created_at=validation.created_at,
+        prototype_scores=validation.prototype_scores,
+        human_scores=validation.human_scores,
+        problem_assessments=[
+            ProblemAssessmentOut(
+                problem=item.problem,
+                verdict=item.verdict,
+                note=item.note,
+            )
+            for item in validation.problem_assessments
+        ],
+        documentation_ok=validation.documentation_ok,
+        textual_cohesion_ok=validation.textual_cohesion_ok,
+        argumentative_consistency_ok=validation.argumentative_consistency_ok,
+        legal_basis_ok=validation.legal_basis_ok,
+        final_quality=validation.final_quality,
+        comments=validation.comments,
+        comparison=ComparisonOut(
+            mae_scores=validation.comparison.mae_scores,
+            agreement_rate=validation.comparison.agreement_rate,
+            dimension_gaps=validation.comparison.dimension_gaps,
+            problems_confirmed=validation.comparison.problems_confirmed,
+            problems_partial=validation.comparison.problems_partial,
+            problems_rejected=validation.comparison.problems_rejected,
+            summary=validation.comparison.summary,
+        ),
+        markdown_report=validation.markdown_report,
     )
 
 
@@ -396,10 +620,14 @@ def _run_scrape_job(
     container: AppContainer,
     on_progress: Callable[[int, str], None],
 ) -> dict:
-    total = container.download_petitions_use_case.execute(on_progress=on_progress)
+    result = container.download_petitions_use_case.execute(on_progress=on_progress)
     return {
-        "total_documents": total,
-        "message": "Scraping concluído. Revise os PDFs e rode POST /v1/index/rebuild.",
+        "total_documents": result.total_documents,
+        "new_accepted": result.new_accepted,
+        "new_rejected": result.new_rejected,
+        "new_partial": result.new_partial,
+        "candidates_found": result.candidates_found,
+        "message": result.message,
     }
 
 
