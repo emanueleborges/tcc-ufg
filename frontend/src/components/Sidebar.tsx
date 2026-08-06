@@ -192,6 +192,97 @@ export function Sidebar({
       </div>
 
       <div className="sidebar-footer">
+        <div className="api-brand" aria-hidden="true">
+          <svg
+            className="api-brand-icon"
+            viewBox="0 0 72 72"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <defs>
+              <linearGradient
+                id="api-brand-grad"
+                className="api-brand-grad"
+                x1="0"
+                y1="0"
+                x2="72"
+                y2="72"
+                gradientUnits="userSpaceOnUse"
+              >
+                <stop offset="0%" stopColor="var(--composer-border-1)" />
+                <stop offset="25%" stopColor="var(--composer-border-3)" />
+                <stop offset="50%" stopColor="var(--composer-border-2)" />
+                <stop offset="75%" stopColor="var(--composer-border-4)" />
+                <stop offset="100%" stopColor="var(--composer-border-1)" />
+                <animateTransform
+                  attributeName="gradientTransform"
+                  type="rotate"
+                  from="0 36 36"
+                  to="360 36 36"
+                  dur="5s"
+                  repeatCount="indefinite"
+                />
+              </linearGradient>
+              <filter
+                id="api-brand-glow"
+                x="-20%"
+                y="-20%"
+                width="140%"
+                height="140%"
+              >
+                <feGaussianBlur stdDeviation="1.1" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            <g fill="url(#api-brand-grad)" filter="url(#api-brand-glow)">
+              <rect x="4" y="26" width="64" height="3.2" />
+              <path
+                d="M8 29.2 L16 46 M8 29.2 L0 46"
+                fill="none"
+                stroke="url(#api-brand-grad)"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+              <path d="M0 46 A8 7.5 0 0 0 16 46 Z" />
+              <path
+                d="M64 29.2 L72 46 M64 29.2 L56 46"
+                fill="none"
+                stroke="url(#api-brand-grad)"
+                strokeWidth="2"
+                strokeLinecap="round"
+              />
+              <path d="M56 46 A8 7.5 0 0 0 72 46 Z" />
+              <rect x="26" y="16" width="20" height="20" />
+              <rect x="29" y="12.2" width="3.2" height="3.8" />
+              <rect x="34.4" y="12.2" width="3.2" height="3.8" />
+              <rect x="39.8" y="12.2" width="3.2" height="3.8" />
+              <rect x="22.2" y="19.5" width="3.8" height="3.2" />
+              <rect x="22.2" y="26" width="3.8" height="3.2" />
+              <rect x="46" y="19.5" width="3.8" height="3.2" />
+              <rect x="46" y="26" width="3.8" height="3.2" />
+              <rect x="29" y="36" width="3.2" height="3.8" />
+              <rect x="39.8" y="36" width="3.2" height="3.8" />
+              <rect x="33.4" y="36" width="5.2" height="18" />
+              <path d="M27 54 L45 54 L42.2 58.2 L29.8 58.2 Z" />
+              <rect x="20" y="58.2" width="32" height="3.6" />
+            </g>
+            <text
+              x="36"
+              y="30.2"
+              textAnchor="middle"
+              fill="var(--sidebar)"
+              fontSize="11.5"
+              fontWeight="700"
+              fontFamily="var(--font-body), system-ui, sans-serif"
+              letterSpacing="0.02em"
+            >
+              AI
+            </text>
+          </svg>
+        </div>
         <p
           className={`api-status ${apiOnline === true ? 'ok' : apiOnline === false ? 'bad' : ''}`}
         >

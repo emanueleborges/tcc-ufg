@@ -43,6 +43,14 @@
   --composer-glow-opacity: 0.5;
   --composer-glow-blur: 7px;
   --composer-glow-spread: 1.5px;
+  --injection-none-bg: #eef7f2;
+  --injection-none-border: rgba(31, 92, 69, 0.28);
+  --injection-low-bg: #f8f4e4;
+  --injection-low-border: rgba(138, 120, 29, 0.35);
+  --injection-medium-bg: #f8eee2;
+  --injection-medium-border: rgba(168, 96, 20, 0.4);
+  --injection-high-bg: #f8e8e6;
+  --injection-high-border: rgba(155, 44, 44, 0.45);
   --radius: 18px;
   --chat-max: 1760px;
   --text-label: 0.78rem;
@@ -101,6 +109,14 @@
   --composer-glow-opacity: 0.48;
   --composer-glow-blur: 8px;
   --composer-glow-spread: 1.5px;
+  --injection-none-bg: #1a3228;
+  --injection-none-border: rgba(111, 191, 154, 0.4);
+  --injection-low-bg: #322e1a;
+  --injection-low-border: rgba(224, 200, 96, 0.4);
+  --injection-medium-bg: #3a2818;
+  --injection-medium-border: rgba(224, 160, 112, 0.45);
+  --injection-high-bg: #3a2222;
+  --injection-high-border: rgba(240, 163, 163, 0.45);
   color-scheme: dark;
 }
 

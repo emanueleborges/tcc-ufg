@@ -163,15 +163,36 @@
 .sidebar-footer {
   margin-top: auto;
   display: grid;
-  gap: 0.35rem;
+  justify-items: center;
+  gap: 0.45rem;
   flex-shrink: 0;
-  padding-top: 0.25rem;
+  padding-top: 0.45rem;
+}
+
+.api-brand {
+  display: grid;
+  place-items: center;
+  color: var(--sidebar-ink);
+}
+
+.api-brand-icon {
+  width: 52px;
+  height: 52px;
+  display: block;
+  overflow: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .api-brand-icon animateTransform {
+    display: none;
+  }
 }
 
 .api-status {
   margin: 0;
   font-size: var(--text-meta);
   color: var(--sidebar-muted);
+  text-align: center;
 }
 
 .api-status.ok {
@@ -801,6 +822,7 @@
   border-radius: 16px;
   background: var(--panel-bg);
   border: 1px solid var(--line);
+  color: var(--ink);
 }
 
 .result-panel h3,
@@ -854,19 +876,27 @@
   border-radius: 14px;
   border: 1px solid var(--line);
   background: var(--bg-elevated);
+  color: var(--ink);
 }
 
 .injection-panel h4 {
   margin-top: 0;
+  color: var(--ink);
 }
 
 .injection-summary {
   margin: 0 0 0.45rem;
+  color: var(--ink);
 }
 
 .injection-owasp {
   margin: 0 0 0.45rem;
-  font-size: var(--text-muted);
+  font-size: var(--text-meta);
+  color: var(--muted);
+}
+
+.injection-panel p {
+  color: var(--ink);
 }
 
 .injection-cats {
@@ -879,6 +909,7 @@
   padding-left: 1.1rem;
   display: grid;
   gap: 0.55rem;
+  color: var(--ink);
 }
 
 .injection-findings code {
@@ -886,30 +917,31 @@
   margin-top: 0.2rem;
   padding: 0.15rem 0.35rem;
   border-radius: 6px;
-  background: rgba(0, 0, 0, 0.05);
+  background: var(--code-bg);
   font-size: var(--text-label);
   word-break: break-word;
+  color: var(--ink);
 }
 
 .injection-risk.is-none {
-  border-color: rgba(31, 92, 69, 0.28);
-  background: #eef7f2;
+  border-color: var(--injection-none-border);
+  background: var(--injection-none-bg);
 }
 
 .injection-risk.is-low {
-  border-color: rgba(138, 120, 29, 0.35);
-  background: #f8f4e4;
+  border-color: var(--injection-low-border);
+  background: var(--injection-low-bg);
 }
 
 .injection-risk.is-medium {
-  border-color: rgba(168, 96, 20, 0.4);
-  background: #f8eee2;
+  border-color: var(--injection-medium-border);
+  background: var(--injection-medium-bg);
 }
 
 .injection-risk.is-high,
 .injection-risk.is-critical {
-  border-color: rgba(155, 44, 44, 0.45);
-  background: #f8e8e6;
+  border-color: var(--injection-high-border);
+  background: var(--injection-high-bg);
 }
 
 .warn-text {
