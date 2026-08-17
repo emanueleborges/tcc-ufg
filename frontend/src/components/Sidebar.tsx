@@ -101,16 +101,6 @@ export function Sidebar({
           }
         />
 
-        <label className="check-label">
-          <input
-            type="checkbox"
-            checked={settings.useInternetOnRecreate}
-            onChange={(e) =>
-              onSettingsChange({ useInternetOnRecreate: e.target.checked })
-            }
-          />
-          Usar internet ao recriar petição
-        </label>
       </div>
 
       <div className="sidebar-block">

@@ -1,8 +1,13 @@
 # Feature spec — Reescrita completa da petição
 
-**Status:** implemented  
+**Status:** removed (2026-08-17)  
 **Owner:** TCC UFG  
 **Related:** análise crítica; recriação anotada; Ollama
+
+> **Remoção:** a funcionalidade de recriar/reescrever petição foi descontinuada
+> (decisão do produto). Todo o código correspondente foi removido do backend,
+> frontend, Streamlit e CLI. Este arquivo permanece apenas como histórico.
+> A varredura de injeção de prompt **permanece** na análise de petição.
 
 ## Problema
 

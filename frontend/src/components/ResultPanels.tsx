@@ -1,7 +1,6 @@
 import type {
   AnalysisPayload,
   PromptInjectionReport,
-  RecreationPayload,
 } from '../api/types'
 
 function downloadText(filename: string, content: string, mime: string) {
@@ -140,7 +139,6 @@ function InjectionSection({ report }: { report: PromptInjectionReport }) {
         Risco: <strong>{RISK_LABEL[report.risk] ?? report.risk}</strong>
         {' · '}
         Score: <strong>{report.score}/100</strong>
-        {report.blocked_for_llm ? ' · Recriação com LLM bloqueada' : ''}
       </p>
       <p className="injection-owasp">
         Framework:{' '}
@@ -194,44 +192,5 @@ function InjectionSection({ report }: { report: PromptInjectionReport }) {
         </ul>
       )}
     </section>
-  )
-}
-
-interface RecreationProps {
-  recreation: RecreationPayload
-}
-
-export function RecreationPanel({ recreation }: RecreationProps) {
-  return (
-    <div className="result-panel">
-      <h3>Petição recriada</h3>
-      {recreation.used_ollama && (
-        <p className="ok-text">Comentários gerados com Ollama.</p>
-      )}
-      {recreation.warnings.map((warning) => (
-        <p key={warning} className="warn-text">
-          {warning}
-        </p>
-      ))}
-      {recreation.markdown && (
-        <button
-          type="button"
-          className="panel-download"
-          onClick={() =>
-            downloadText(
-              'peticao_recriada.md',
-              recreation.markdown,
-              'text/markdown;charset=utf-8',
-            )
-          }
-        >
-          Baixar petição recriada (Markdown)
-        </button>
-      )}
-      <details>
-        <summary>Ver markdown completo</summary>
-        <pre className="markdown-preview">{recreation.markdown}</pre>
-      </details>
-    </div>
   )
 }

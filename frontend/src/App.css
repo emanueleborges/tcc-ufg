@@ -777,10 +777,6 @@
   background: #f6e5cf;
 }
 
-.badge-recreation {
-  background: #f3d9d9;
-}
-
 .badge-system {
   background: #e8e4da;
 }
@@ -1699,10 +1695,6 @@
 
 [data-theme='dark'] .badge-analysis {
   background: #3a2e1c;
-}
-
-[data-theme='dark'] .badge-recreation {
-  background: #3a2222;
 }
 
 [data-theme='dark'] .badge-system {

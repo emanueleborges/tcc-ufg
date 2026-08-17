@@ -7,12 +7,9 @@ from pathlib import Path
 import streamlit as st
 
 from src.container import AppContainer
-from src.domain.entities import RecreatedPetition, ReviewResult
-from src.presentation.streamlit.components import render_pdf_viewer
+from src.domain.entities import ReviewResult
 
 _REPORT_FILE_NAME = "relatorio_critico.md"
-_RECREATED_MD_FILE = "peticao_recriada.md"
-_RECREATED_PDF_FILE = "peticao_recriada.pdf"
 
 
 def render(container: AppContainer) -> None:
@@ -98,8 +95,6 @@ def _reset_session_for_new_upload(file_name: str) -> None:
     if st.session_state.get("uploaded_file_name") != file_name:
         st.session_state.uploaded_file_name = file_name
         st.session_state.analysis_result = None
-        st.session_state.recreated_petition = None
-        st.session_state.recreated_pdf_path = None
 
 
 def _run_analysis(container: AppContainer, petition_path: Path) -> None:
@@ -121,17 +116,11 @@ def _run_analysis(container: AppContainer, petition_path: Path) -> None:
     reports_dir = container.settings.paths.reports_dir
     (reports_dir / _REPORT_FILE_NAME).write_text(review.markdown, encoding="utf-8")
     st.session_state.analysis_result = review
-    st.session_state.recreated_petition = None
-    st.session_state.recreated_pdf_path = None
     st.success("Análise concluída.")
 
 
 def _render_results(container: AppContainer, review: ReviewResult) -> None:
-    analysis_tab, recreated_tab = st.tabs(["Análise", "Petição recriada"])
-    with analysis_tab:
-        _render_analysis_tab(review)
-    with recreated_tab:
-        _render_recreated_tab(container, review)
+    _render_analysis_tab(review)
 
 
 def _render_analysis_tab(review: ReviewResult) -> None:
@@ -177,122 +166,3 @@ def _render_analysis_tab(review: ReviewResult) -> None:
         use_container_width=True,
     )
     st.markdown(review.markdown)
-
-
-def _render_recreated_tab(container: AppContainer, review: ReviewResult) -> None:
-    st.write(
-        "A petição original é mantida na íntegra. As melhorias aparecem como "
-        "`[COMENTÁRIO (categoria): ...]` inline, logo após o trecho ao qual se referem, "
-        "e também em um resumo final. Se o PDF for escaneado, o texto é recuperado por OCR."
-    )
-
-    col_a, col_b = st.columns(2)
-    with col_a:
-        use_internet = st.checkbox(
-            "Usar busca na internet", value=True, key="opt_internet"
-        )
-    with col_b:
-        use_ollama = st.checkbox("Usar Ollama local", value=True, key="opt_ollama")
-
-    ollama_model = st.text_input(
-        "Modelo do Ollama",
-        value=container.settings.ollama.default_model,
-        key="opt_model",
-    )
-
-    if st.button(
-        "Recriar petição",
-        type="primary",
-        use_container_width=True,
-        key="btn_recreate",
-    ):
-        _run_recreate(
-            container=container,
-            review=review,
-            use_internet=use_internet,
-            use_ollama=use_ollama,
-            ollama_model=ollama_model.strip() or container.settings.ollama.default_model,
-        )
-
-    recreated = st.session_state.get("recreated_petition")
-    if recreated:
-        _render_recreated_result(container, recreated, ollama_model)
-
-
-def _run_recreate(
-    *,
-    container: AppContainer,
-    review: ReviewResult,
-    use_internet: bool,
-    use_ollama: bool,
-    ollama_model: str,
-) -> None:
-    reports_dir = container.settings.paths.reports_dir
-    with st.spinner("Recriando a petição com as melhorias propostas..."):
-        try:
-            recreated = container.recreate_petition_use_case.execute(
-                petition_path=Path(review.petition_path),
-                review=review,
-                use_internet=use_internet,
-                use_ollama=use_ollama,
-                ollama_model=ollama_model,
-            )
-            (reports_dir / _RECREATED_MD_FILE).write_text(
-                recreated.markdown, encoding="utf-8"
-            )
-            pdf_path = container.pdf_writer.markdown_to_pdf(
-                recreated.markdown, reports_dir / _RECREATED_PDF_FILE
-            )
-        except Exception as exc:  # noqa: BLE001
-            st.error(f"Falha ao recriar petição: {exc}")
-            return
-
-    st.session_state.recreated_petition = recreated
-    st.session_state.recreated_pdf_path = str(pdf_path)
-    st.success("Petição recriada com a petição original preservada.")
-
-
-def _render_recreated_result(
-    container: AppContainer,
-    recreated: RecreatedPetition,
-    ollama_model: str,
-) -> None:
-    for warning in recreated.warnings:
-        st.warning(warning)
-    if recreated.used_ollama:
-        st.caption(f"Comentários gerados pelo Ollama (`{ollama_model}`).")
-
-    if recreated.web_references:
-        with st.expander("Referências encontradas na internet"):
-            for reference in recreated.web_references:
-                st.write(f"- [{reference.title}]({reference.url})")
-                if reference.snippet:
-                    st.caption(reference.snippet)
-
-    pdf_path_value = st.session_state.get("recreated_pdf_path")
-    col_dl1, col_dl2 = st.columns(2)
-    if pdf_path_value:
-        pdf_path = Path(pdf_path_value)
-        with col_dl1:
-            st.download_button(
-                "Baixar PDF",
-                data=pdf_path.read_bytes(),
-                file_name=_RECREATED_PDF_FILE,
-                mime="application/pdf",
-                use_container_width=True,
-                key="dl_pdf",
-            )
-    with col_dl2:
-        st.download_button(
-            "Baixar Markdown",
-            data=recreated.markdown,
-            file_name=_RECREATED_MD_FILE,
-            mime="text/markdown",
-            use_container_width=True,
-            key="dl_md",
-        )
-
-    st.markdown(recreated.markdown)
-    if pdf_path_value:
-        with st.expander("Visualizar PDF"):
-            render_pdf_viewer(Path(pdf_path_value))

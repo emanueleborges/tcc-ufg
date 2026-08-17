@@ -5,7 +5,6 @@ const SOURCE_CLASS: Record<string, string> = {
   ollama: 'badge-ollama',
   internet: 'badge-internet',
   petition_analysis: 'badge-analysis',
-  petition_recreation: 'badge-recreation',
   system: 'badge-system',
 }
 

@@ -17,6 +17,9 @@ onnxruntime>=1.18.0
 numpy>=1.26.0
 sentence-transformers>=3.0.0
 
+# --- Banco vetorial (índice RAG) ---
+chromadb>=1.0.0
+
 # --- LangChain (orquestração do chatbot) ---
 langchain>=0.3.0
 langchain-core>=0.3.0

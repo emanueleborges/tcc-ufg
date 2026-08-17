@@ -1,7 +1,7 @@
 # Spec vigente — Corpus RAG e scraping
 
 **Status:** implemented  
-**Módulo:** `backend/src/infrastructure/scraping`, `build_index`, NLP `case_outcome`
+**Módulo:** `backend/src/infrastructure/scraping`, `build_index`, NLP `case_outcome`, `infrastructure/persistence`
 
 ## Objetivo
 
@@ -33,6 +33,15 @@ Manter base documental **trinária** para o RAG: petições/decisões **aceitas 
 - Retrieval diversifica as três classes
 - UI: painel **Referências**
 
+### R5 — Persistência vetorial (ChromaDB)
+- Índice RAG persistido em **ChromaDB** (`chromadb.PersistentClient`), coleção `peticoes_chunks`, em `indice_juridico/chroma/`
+- Cada chunk vira um registro: `id = chunk_id`, `document = texto`, `embedding` = vetor, `metadatas = {document_id, file_name, section, page_start, page_end, features (JSON), row_index}`
+- Resumos de documentos (`DocumentSummary`, sem vetor) permanecem em `indice_juridico/documentos.json`
+- Contrato `IndexRepositoryPort` **inalterado** (`exists()` / `save()` / `load()`); `load()` devolve a matriz de embeddings alinhada aos chunks por `row_index`
+- Migração automática e única: se a coleção estiver vazia e os arquivos legados (`chunks.jsonl` + `embeddings.npy` + `documentos.json`) existirem, importá-los para o ChromaDB sem exigir rebuild
+- Scoring e diversificação continuam no `SemanticSearchService` — o ChromaDB é o **store vetorial**, não o ranker
+- Rebuild (`/v1/index/rebuild`) recria a coleção do zero (sem resíduos de versões anteriores)
+
 ## Acceptance criteria
 
 - [x] Scrape grava em `aceitas/`, `rejeitadas/` e `parcial/` conforme outcome
@@ -42,6 +51,11 @@ Manter base documental **trinária** para o RAG: petições/decisões **aceitas 
 - [x] Mensagem de scrape reporta `aceitas=` / `rejeitadas=` / `parcial=`
 - [x] Backfill HF cobre as três classes
 - [x] Reclassificação move parciais que estavam em `aceitas/`
+- [x] Índice salvo/carregado via ChromaDB (round-trip `save()`→`load()` idêntico)
+- [x] Migração automática do índice legado (filesystem+NumPy) sem rebuild
+- [x] `/v1/index` reporta `exists`/`documents`/`chunks` após migração
+- [x] Busca semântica devolve os mesmos resultados do índice legado
+- [x] Rebuild recria a coleção ChromaDB do zero
 
 ## Notas
 

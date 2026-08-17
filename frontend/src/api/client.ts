@@ -45,7 +45,6 @@ export async function sendChat(params: {
       petition_id: params.petitionId,
       rag_top_k: params.settings.ragTopK,
       web_max_results: params.settings.webMaxResults,
-      use_internet_on_recreate: params.settings.useInternetOnRecreate,
       persona_id: params.settings.personaId,
     }),
   })

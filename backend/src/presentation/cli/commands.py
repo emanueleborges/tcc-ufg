@@ -35,7 +35,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="app.py",
         description=(
-            "Crítico Jurídico Inteligente (TCC UFG): RAG + análise + recriação de petições."
+            "Crítico Jurídico Inteligente (TCC UFG): RAG + análise de petições."
         ),
     )
     subparsers = parser.add_subparsers(dest="command")

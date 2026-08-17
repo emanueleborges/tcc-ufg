@@ -15,7 +15,6 @@ class AnswerSource(str, Enum):
     OLLAMA = "ollama"
     INTERNET = "internet"
     PETITION_ANALYSIS = "petition_analysis"
-    PETITION_RECREATION = "petition_recreation"
     SYSTEM = "system"
 
     @property
@@ -25,7 +24,6 @@ class AnswerSource(str, Enum):
             AnswerSource.OLLAMA: "Ollama local",
             AnswerSource.INTERNET: "Internet (DuckDuckGo)",
             AnswerSource.PETITION_ANALYSIS: "Análise crítica da petição",
-            AnswerSource.PETITION_RECREATION: "Recriação da petição",
             AnswerSource.SYSTEM: "Sistema",
         }[self]
 
@@ -36,7 +34,6 @@ class AnswerSource(str, Enum):
             AnswerSource.OLLAMA: "🤖",
             AnswerSource.INTERNET: "🌐",
             AnswerSource.PETITION_ANALYSIS: "⚖️",
-            AnswerSource.PETITION_RECREATION: "✍️",
             AnswerSource.SYSTEM: "ℹ️",
         }[self]
 
@@ -45,7 +42,6 @@ class Intent(str, Enum):
     """Intenção detectada na mensagem do usuário."""
 
     ANALYZE_PETITION = "analyze_petition"
-    RECREATE_PETITION = "recreate_petition"
     ASK_RAG = "ask_rag"
     ASK_INTERNET = "ask_internet"
     ASK_OLLAMA = "ask_ollama"

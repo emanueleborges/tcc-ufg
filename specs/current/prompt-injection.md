@@ -18,7 +18,7 @@ Ao pedir **análise da petição anexada**, varrer:
 1. o texto extraído (padrões EN/PT e injeções processuais BR);
 2. spans do PDF com cor branca/quase branca ou fonte minúscula.
 
-Classificar risco, exibir no painel e, em risco alto/crítico, **bloquear recriação com LLM**.
+Classificar risco e exibir no painel, com alerta no chat em risco alto/crítico.
 
 ## Fora de escopo
 
@@ -37,8 +37,10 @@ Intenção `analyze_petition` → analisar texto + PDF (spans invisíveis).
 ### R3 — UX
 Seção “Segurança / Injeção de prompt” no painel; alerta no chat se risco ≥ medium.
 
-### R4 — Gate na recriação
-Risco `high`/`critical` → não enviar ao Ollama.
+### R4 — (removido)
+O gate de recriação com LLM deixou de existir junto com a funcionalidade de
+recriação de petição (ver `petition-rewrite.md`, status `removed`). A varredura
+segue ativa na análise e o risco é exibido no painel.
 
 ### R5 — Cobertura mínima de padrões
 - Jailbreaks clássicos EN/PT  
@@ -60,7 +62,7 @@ Exibir no painel: `owasp_id`, tipos de ataque, técnicas e objetivos.
 
 ### Cenário B — comando Parauapebas no texto
 **Dado** o comando TRT-8 no PDF  
-**Então** risco `critical`, findings com padrões `trt8_*` / `combo_trt8_parauapebas`, alerta e bloqueio de recriação.
+**Então** risco `critical`, findings com padrões `trt8_*` / `combo_trt8_parauapebas` e alerta no painel/chat.
 
 ### Cenário C — texto branco no PDF
 **Dado** span RGB≈branco com instrução adversária  
@@ -73,7 +75,6 @@ Exibir no painel: `owasp_id`, tipos de ataque, técnicas e objetivos.
 - [x] Detecção de spans invisíveis via PyMuPDF
 - [x] Integrado a `analyze_petition` (texto + path do PDF)
 - [x] API `analysis.prompt_injection` + painel frontend
-- [x] Bloqueio de recriação em risco alto/crítico
 
 ## Impacto técnico
 

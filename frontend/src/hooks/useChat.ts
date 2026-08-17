@@ -8,7 +8,7 @@ const WELCOME: UiMessage = {
   content:
     'Olá. Sou o **Crítico Jurídico Inteligente**.\n\n' +
     'Selecione uma **persona jurídica** no composer (padrão: Geral) e pergunte sobre petições ou jurisprudência — eu roteio entre **RAG**, **Ollama** e **Internet**.\n\n' +
-    'Anexe um PDF e peça *“analise minha petição”* ou *“recrie esta petição”*.',
+    'Anexe um PDF e peça *“analise minha petição”*.',
   source: {
     id: 'system',
     label: 'Sistema',
@@ -19,7 +19,6 @@ const WELCOME: UiMessage = {
 const DEFAULT_SETTINGS: ChatSettings = {
   ragTopK: 8,
   webMaxResults: 5,
-  useInternetOnRecreate: true,
   personaId: 'geral',
 }
 
@@ -115,7 +114,6 @@ export function useChat() {
           citations: response.citations,
           model: response.model,
           analysis: response.analysis,
-          recreation: response.recreation,
         }
         setMessages((prev) => [...prev, assistantMsg])
       } catch (err) {

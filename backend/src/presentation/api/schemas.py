@@ -33,14 +33,10 @@ class ChatCompletionRequest(BaseModel):
     )
     petition_id: Optional[str] = Field(
         default=None,
-        description="ID retornado por POST /v1/uploads (ativa análise/recriação).",
+        description="ID retornado por POST /v1/uploads (ativa análise da petição).",
     )
     rag_top_k: int = Field(default=8, ge=1, le=20)
     web_max_results: int = Field(default=5, ge=1, le=15)
-    use_internet_on_recreate: bool = Field(
-        default=True,
-        description="Usar DuckDuckGo ao recriar petição.",
-    )
     persona_id: str = Field(
         default="geral",
         description="Persona jurídica (especialista) aplicada ao system prompt.",
@@ -93,7 +89,6 @@ class PromptInjectionOut(BaseModel):
     summary: str = ""
     findings: list[PromptInjectionFindingOut] = Field(default_factory=list)
     scanned_chars: int = 0
-    blocked_for_llm: bool = False
     owasp_id: str = "LLM01:2025"
     owasp_name: str = "Prompt Injection"
     owasp_url: str = "https://genai.owasp.org/llmrisk/llm01-prompt-injection/"
@@ -114,14 +109,6 @@ class AnalysisOut(BaseModel):
     prompt_injection: Optional[PromptInjectionOut] = None
 
 
-class RecreationOut(BaseModel):
-    """Resultado da recriação de petição."""
-
-    markdown: str
-    warnings: list[str] = Field(default_factory=list)
-    used_ollama: bool = False
-
-
 class ChatCompletionResponse(BaseModel):
     """Response estilo OpenAI Chat Completions + metadados do crítico jurídico."""
 
@@ -135,7 +122,6 @@ class ChatCompletionResponse(BaseModel):
     persona: Optional[PersonaOut] = None
     citations: list[CitationOut] = Field(default_factory=list)
     analysis: Optional[AnalysisOut] = None
-    recreation: Optional[RecreationOut] = None
     extra: dict[str, Any] = Field(default_factory=dict)
 
 

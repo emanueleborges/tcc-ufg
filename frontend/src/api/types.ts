@@ -38,7 +38,6 @@ export interface ChatCompletionResponse {
   persona?: PersonaOut | null
   citations: Citation[]
   analysis?: AnalysisPayload | null
-  recreation?: RecreationPayload | null
 }
 
 export interface PromptInjectionFinding {
@@ -56,7 +55,6 @@ export interface PromptInjectionReport {
   summary: string
   findings: PromptInjectionFinding[]
   scanned_chars: number
-  blocked_for_llm: boolean
   owasp_id?: string
   owasp_name?: string
   owasp_url?: string
@@ -73,12 +71,6 @@ export interface AnalysisPayload {
   features: Record<string, string | number | boolean>
   markdown: string
   prompt_injection?: PromptInjectionReport | null
-}
-
-export interface RecreationPayload {
-  markdown: string
-  warnings: string[]
-  used_ollama: boolean
 }
 
 export type ProblemVerdict = 'confirmed' | 'partial' | 'rejected'
@@ -200,7 +192,6 @@ export interface PersonasListResponse {
 export interface ChatSettings {
   ragTopK: number
   webMaxResults: number
-  useInternetOnRecreate: boolean
   personaId: string
 }
 
@@ -215,5 +206,4 @@ export interface UiMessage {
   model?: string
   attachmentName?: string
   analysis?: AnalysisPayload | null
-  recreation?: RecreationPayload | null
 }

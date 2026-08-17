@@ -19,7 +19,7 @@ A especificação é a fonte da verdade; o código implementa a spec.
 3. Base RAG trinária: `aceitas/` (deferido), `rejeitadas/` (indeferido) e `parcial/`; índice usa as três.
 4. Chat com personas jurídicas selecionáveis (Geral + especialidades); prompts em `personas.py`.
 5. Chat: respostas limpas; referências no painel (não ecoar PDFs no texto).
-6. Análise de petição anexada inclui varredura de injeção de prompt; risco alto/crítico bloqueia recriação com LLM.
+6. Análise de petição anexada inclui varredura de injeção de prompt (OWASP LLM01), exibida no painel e no chat.
 7. Não inventar endpoints/comportamentos fora da spec; atualize a spec primeiro.
 8. Sem commits sem pedido explícito do usuário.
 9. Respostas ao usuário em português.

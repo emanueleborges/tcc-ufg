@@ -6,11 +6,11 @@ Projeto de TCC da Universidade Federal de Goiás (UFG): **chatbot jurídico** ba
 
 - **Chatbot com roteamento inteligente** entre 3 fontes: 📚 RAG interno, 🤖 Ollama local, 🌐 DuckDuckGo — cada resposta exibe sua fonte
 - Orquestração com **LangChain** (`ChatOllama` + prompts especializados por fonte)
-- Anexar uma petição no chat e pedir _"analise"_ ou _"recrie esta petição"_ aciona automaticamente os use cases de análise/recriação
+- Anexar uma petição no chat e pedir _"analise"_ aciona automaticamente o use case de análise crítica
 - Indexação de petições jurídicas em PDF, com OCR automático quando o PDF é escaneado
 - Análise crítica: scores multi-dimensionais, features jurídicas, pontos fracos e sugestões
+- Varredura de injeção de prompt (OWASP LLM01) na análise de petições anexadas
 - Busca semântica em uma base curada de petições com sentenças procedentes
-- Recriação da petição preservando o original e anotando melhorias *inline* via LLM
 - Geração de relatórios em Markdown e PDF
 - Modo **clássico** (formulário tradicional) também disponível no mesmo Streamlit
 - CLI para indexação e scraping
@@ -18,6 +18,8 @@ Projeto de TCC da Universidade Federal de Goiás (UFG): **chatbot jurídico** ba
 ## Arquitetura
 
 O projeto segue **Clean Architecture**, com camadas isoladas por responsabilidade, e **Spec-Driven Development (SDD)** — veja `AGENTS.md` e `specs/`.
+
+📄 Análise técnica detalhada (stack, classes e funções principais por funcionalidade): [`docs/ARQUITETURA.md`](docs/ARQUITETURA.md)
 
 ```
 tcc-ufg/
@@ -27,7 +29,7 @@ tcc-ufg/
 │   ├── requirements.txt
 │   ├── .streamlit/                 # Config Streamlit
 │   ├── downloads_peticoes/         # PDFs baixados / aceitos
-│   ├── indice_juridico/            # Índice RAG em disco
+│   ├── indice_juridico/            # Índice RAG (ChromaDB persistente)
 │   ├── relatorios/                 # Relatórios gerados
 │   ├── uploads/                    # Uploads de petições
 │   └── src/
@@ -39,15 +41,13 @@ tcc-ufg/
 │       │   └── use_cases/
 │       │       ├── build_index.py
 │       │       ├── analyze_petition.py
-│       │       ├── recreate_petition.py
 │       │       ├── download_petitions.py
 │       │       ├── generate_corpus_report.py
 │       │       └── chat_with_assistant.py
 │       ├── infrastructure/         # Adapters concretos
 │       │   ├── pdf/                # leitura, OCR, geração de PDF
 │       │   ├── nlp/                # chunking, features, sections, embeddings
-│       │   ├── persistence/        # índice RAG em disco
-│       │   ├── llm/                # cliente Ollama (não-conversacional)
+│       │   ├── persistence/        # índice RAG (ChromaDB)
 │       │   ├── langchain/          # chat conversacional (ChatOllama)
 │       │   ├── search/             # busca web (DuckDuckGo)
 │       │   └── scraping/           # baixador de PDFs públicos
@@ -56,7 +56,6 @@ tcc-ufg/
 │       │   ├── semantic_search.py
 │       │   ├── scoring.py
 │       │   ├── benchmarks.py
-│       │   ├── inline_comments.py
 │       │   ├── report_renderer.py
 │       │   └── chat/               # Estratégias e orquestrador do chatbot
 │       │       ├── intent_classifier.py
@@ -241,7 +240,7 @@ python app.py api      # sobe a API em :8000
 1. `cd backend && python app.py scrape` → baixa PDFs jurídicos públicos
 2. `cd backend && python app.py index` → cria o índice RAG e o relatório do corpus
 3. `cd backend && python app.py api` + `cd frontend && npm run dev` → abre o chat React
-4. (Opcional) Anexe uma petição em PDF e digite: _"analise minha petição"_ ou _"recrie esta petição"_
+4. (Opcional) Anexe uma petição em PDF e digite: _"analise minha petição"_
 
 ## Como o chatbot decide a fonte
 
@@ -250,7 +249,6 @@ A mensagem do usuário passa por um classificador heurístico de intenção. A f
 | Sinais na mensagem | Fonte usada | Badge |
 |---|---|---|
 | "analise", "avalie", "critique" + PDF anexado | use case `AnalyzePetition` | ⚖️ Análise crítica |
-| "recrie", "melhore", "reescreva" + PDF anexado | use case `RecreatePetition` | ✍️ Recriação |
 | "internet", "pesquise", "online", "duckduckgo" | DuckDuckGo + Ollama | 🌐 Internet |
 | "base", "corpus", "rag", "similar", "anteriores" | RAG (busca semântica) + Ollama | 📚 RAG |
 | qualquer outra | Ollama puro (chat geral) | 🤖 Ollama |
@@ -291,6 +289,7 @@ e remova/comente a linha `fileWatcherType` no config.
 - **Python 3.10+** + `streamlit` (UI)
 - `langchain` + `langchain-ollama` (orquestração do chatbot)
 - `sentence-transformers` (E5) + `numpy` (embeddings/busca semântica)
+- `chromadb` (banco vetorial do índice RAG)
 - `pypdf` + `PyMuPDF` + `rapidocr` (leitura/OCR de PDFs)
 - `reportlab` (geração de PDF a partir de Markdown)
 - `ddgs` (busca web)
@@ -341,7 +340,4 @@ explícito
 padrão
 "analise minha petição" (com PDF)
 ⚖️ Análise
-explícito
-"recrie esta petição" (com PDF)
-✍️ Recriação
 explícito

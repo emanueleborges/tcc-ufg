@@ -27,8 +27,8 @@ Altura ≤ 820px: sidebar ainda mais compacta (sem scrollbar da página).
 
 - [x] Monorepo `backend/` + `frontend/`
 - [x] Progresso % nos botões rebuild/scrape
-- [x] Painéis análise/recriação no chat React
-- [ ] Paridade total com Streamlit clássico (PDF viewer / PDF recriado)
+- [x] Painel de análise no chat React
+- [ ] Paridade total com Streamlit clássico (PDF viewer)
 - [x] Desktop (≥1100): sidebar + chat lado a lado, viewport sem scroll externo
 - [x] Tablet (901–1099): sidebar estreita, conteúdo legível
 - [x] Mobile (≤900): drawer de configurações + chat full-width

@@ -6,7 +6,7 @@ Advogados precisam analisar petições à luz de peças semelhantes com desfecho
 
 ## Solução
 
-**Crítico Jurídico Inteligente**: chatbot que roteia entre RAG, Ollama, Internet, análise e recriação de petição; corpus com casos favoráveis e desfavoráveis.
+**Crítico Jurídico Inteligente**: chatbot que roteia entre RAG, Ollama, Internet e análise de petição; corpus com casos favoráveis e desfavoráveis.
 
 ## Personas
 
@@ -18,9 +18,8 @@ Advogados precisam analisar petições à luz de peças semelhantes com desfecho
 1. Chat com roteamento automático de intenção
 2. Upload de petição PDF
 3. Análise multi-dimensional (6 critérios do fluxograma Intelligent)
-4. Recriação com comentários inline
-5. Scrape + índice RAG (aceitas + rejeitadas)
-6. API HTTP para o frontend React
+4. Scrape + índice RAG (aceitas + rejeitadas)
+5. API HTTP para o frontend React
 
 ## Fora de escopo (por enquanto)
 

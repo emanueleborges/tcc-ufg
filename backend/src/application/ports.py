@@ -16,7 +16,6 @@ from src.domain.chat import ChatAnswer, ChatMessage, Intent
 from src.domain.entities import (
     Chunk,
     DocumentSummary,
-    Improvement,
     ReviewResult,
     WebReference,
 )
@@ -61,19 +60,6 @@ class IndexRepositoryPort(Protocol):
     ) -> None: ...
 
     def load(self) -> tuple[list[Chunk], list[DocumentSummary], np.ndarray]: ...
-
-
-@runtime_checkable
-class LLMClientPort(Protocol):
-    """Cliente para um LLM gerador de melhorias (ex.: Ollama local)."""
-
-    def generate_improvements(
-        self,
-        original_text: str,
-        review: ReviewResult,
-        web_references: list[WebReference],
-        model: str,
-    ) -> list[Improvement]: ...
 
 
 @runtime_checkable

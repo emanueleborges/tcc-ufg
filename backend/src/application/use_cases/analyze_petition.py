@@ -70,9 +70,10 @@ class AnalyzePetitionUseCase:
                 f"{injection.summary}",
                 *problems,
             ]
-            if injection.blocked_for_llm:
+            if injection.risk in {"high", "critical"}:
                 suggestions = [
-                    "Não envie este PDF para recriação com LLM até remover trechos adversários.",
+                    "Revise o PDF e remova trechos adversários antes de usar "
+                    "este documento com LLMs.",
                     *suggestions,
                 ]
 

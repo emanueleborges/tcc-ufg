@@ -18,17 +18,15 @@ from src.application.use_cases import (
     GetHumanValidationUseCase,
     ListHumanValidationsUseCase,
     LoadOrBuildIndexUseCase,
-    RecreatePetitionUseCase,
     SubmitHumanValidationUseCase,
 )
 from src.config.settings import Settings, get_settings
 from src.domain.chat import Intent
 from src.infrastructure.langchain.ollama_chat import LangChainOllamaChat
-from src.infrastructure.llm.ollama_client import OllamaClient
 from src.infrastructure.nlp.embedding_engine import SentenceTransformerEmbeddingEngine
 from src.infrastructure.pdf.pdf_reader import PdfReader
 from src.infrastructure.pdf.pdf_writer import ReportlabPdfWriter
-from src.infrastructure.persistence.index_repository import FileSystemIndexRepository
+from src.infrastructure.persistence.chroma_index_repository import ChromaIndexRepository
 from src.infrastructure.persistence.validation_repository import (
     FileSystemValidationRepository,
 )
@@ -37,10 +35,7 @@ from src.infrastructure.search.duckduckgo_search import DuckDuckGoWebSearch
 from src.services.chat.internet_answerer import InternetAnswerer
 from src.services.chat.ollama_answerer import OllamaAnswerer
 from src.services.chat.orchestrator import ChatOrchestrator
-from src.services.chat.petition_answerers import (
-    AnalyzePetitionAnswerer,
-    RecreatePetitionAnswerer,
-)
+from src.services.chat.petition_answerers import AnalyzePetitionAnswerer
 from src.services.chat.rag_answerer import RagAnswerer
 from src.services.chunk_factory import ChunkFactory
 from src.services.semantic_search import SemanticSearchService
@@ -73,16 +68,12 @@ class AppContainer:
         )
 
     @cached_property
-    def index_repository(self) -> FileSystemIndexRepository:
-        return FileSystemIndexRepository(self.settings.paths.index_dir)
+    def index_repository(self) -> ChromaIndexRepository:
+        return ChromaIndexRepository(self.settings.paths.index_dir)
 
     @cached_property
     def validation_repository(self) -> FileSystemValidationRepository:
         return FileSystemValidationRepository(self.settings.paths.validations_dir)
-
-    @cached_property
-    def llm_client(self) -> OllamaClient:
-        return OllamaClient(self.settings.ollama)
 
     @cached_property
     def web_search(self) -> DuckDuckGoWebSearch:
@@ -124,15 +115,6 @@ class AppContainer:
             chunk_factory=self.chunk_factory,
             semantic_search=self.semantic_search,
             rag_settings=self.settings.rag,
-        )
-
-    @cached_property
-    def recreate_petition_use_case(self) -> RecreatePetitionUseCase:
-        return RecreatePetitionUseCase(
-            pdf_reader=self.pdf_reader,
-            llm_client=self.llm_client,
-            web_search=self.web_search,
-            web_search_settings=self.settings.web_search,
         )
 
     @cached_property
@@ -178,18 +160,12 @@ class AppContainer:
             load_or_build_index=self.load_or_build_index_use_case,
             analyze_petition=self.analyze_petition_use_case,
         )
-        recreate = RecreatePetitionAnswerer(
-            load_or_build_index=self.load_or_build_index_use_case,
-            analyze_petition=self.analyze_petition_use_case,
-            recreate_petition=self.recreate_petition_use_case,
-        )
         return ChatOrchestrator(
             {
                 Intent.ASK_OLLAMA: ollama,
                 Intent.ASK_RAG: rag,
                 Intent.ASK_INTERNET: internet,
                 Intent.ANALYZE_PETITION: analyze,
-                Intent.RECREATE_PETITION: recreate,
             }
         )
 

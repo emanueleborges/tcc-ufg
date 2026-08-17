@@ -34,9 +34,8 @@ downloads_peticoes/parcial/*
 downloads_peticoes/metadata.json
 downloads_peticoes/metadata.csv
 
-# Relatórios gerados (PDF e recriação); Markdown de corpus pode ser versionado
+# Relatórios gerados (PDF); Markdown de corpus pode ser versionado
 relatorios/*.pdf
-relatorios/peticao_recriada.*
 
 # Validações humanas (JSON/MD gerados; mantém a pasta)
 validacoes/*

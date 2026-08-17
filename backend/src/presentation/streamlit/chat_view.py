@@ -32,8 +32,7 @@ _INTRO_MESSAGE = (
     "- 🤖 **Ollama local** — para conversa geral, dúvidas casuais ou "
     "quando nenhuma fonte específica se aplica\n\n"
     "Também aceito **upload de petição em PDF** direto no campo de "
-    "mensagem (ícone de clipe). Anexe e peça _“analise”_ ⚖️ ou "
-    "_“recrie esta petição”_ ✍️."
+    "mensagem (ícone de clipe). Anexe e peça _“analise”_ ⚖️."
 )
 
 _SESSION_HISTORY_KEY = "chat_history"
@@ -91,11 +90,6 @@ def _render_sidebar(container: AppContainer) -> dict:
             max_value=10,
             value=settings.web_search.max_results,
         )
-        use_internet_for_recreation = st.checkbox(
-            "Usar internet ao recriar petição",
-            value=True,
-            help="Quando habilitado, a recriação consulta a internet por referências.",
-        )
 
         st.divider()
         st.subheader("Base RAG")
@@ -116,7 +110,6 @@ def _render_sidebar(container: AppContainer) -> dict:
         "ollama_model": ollama_model.strip() or settings.ollama.default_model,
         "rag_top_k": rag_top_k,
         "web_max_results": web_max_results,
-        "use_internet": use_internet_for_recreation,
     }
 
 
@@ -128,7 +121,7 @@ def _render_active_petition_banner() -> None:
     col_info, col_action = st.columns([4, 1])
     with col_info:
         st.info(
-            f"📎 Petição anexada: **{name}** — peça _“analise”_ ou _“recrie”_ "
+            f"📎 Petição anexada: **{name}** — peça _“analise”_ "
             "para acionar a avaliação."
         )
     with col_action:
@@ -200,7 +193,6 @@ def _render_source_badge(
         AnswerSource.OLLAMA: "violet",
         AnswerSource.INTERNET: "green",
         AnswerSource.PETITION_ANALYSIS: "orange",
-        AnswerSource.PETITION_RECREATION: "red",
         AnswerSource.SYSTEM: "gray",
     }
     color = color_map.get(source, "gray")
@@ -216,7 +208,6 @@ _SOURCES_USING_LLM = {
     AnswerSource.RAG,
     AnswerSource.OLLAMA,
     AnswerSource.INTERNET,
-    AnswerSource.PETITION_RECREATION,
 }
 
 
@@ -331,7 +322,6 @@ def _run_assistant(
         "ollama_model": chat_settings["ollama_model"],
         "rag_top_k": chat_settings["rag_top_k"],
         "web_max_results": chat_settings["web_max_results"],
-        "use_internet": chat_settings["use_internet"],
         "petition_path": st.session_state.get(_SESSION_PETITION_PATH_KEY),
     }
     history_without_last = history[:-1]

@@ -1,7 +1,7 @@
 import ReactMarkdown from 'react-markdown'
 import type { UiMessage } from '../api/types'
 import { CitationPanel } from './CitationPanel'
-import { AnalysisPanel, RecreationPanel } from './ResultPanels'
+import { AnalysisPanel } from './ResultPanels'
 import { SourceBadge } from './SourceBadge'
 
 interface Props {
@@ -41,9 +41,6 @@ export function ChatBubble({ message }: Props) {
         </div>
         {!isUser && message.analysis && (
           <AnalysisPanel analysis={message.analysis} />
-        )}
-        {!isUser && message.recreation && (
-          <RecreationPanel recreation={message.recreation} />
         )}
         {!isUser && message.citations && (
           <CitationPanel

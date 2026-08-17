@@ -39,7 +39,6 @@ from src.presentation.api.schemas import (
     ProblemAssessmentOut,
     PromptInjectionFindingOut,
     PromptInjectionOut,
-    RecreationOut,
     RoutingOut,
     ScrapeResponse,
     SourceOut,
@@ -166,7 +165,6 @@ def chat_completions(
         "ollama_model": body.model,
         "rag_top_k": body.rag_top_k,
         "web_max_results": body.web_max_results,
-        "use_internet": body.use_internet_on_recreate,
         "petition_path": petition_path,
         "persona_id": body.persona_id,
     }
@@ -181,7 +179,6 @@ def chat_completions(
         raise HTTPException(status_code=500, detail=f"Falha no assistente: {exc}") from exc
 
     analysis = _extract_analysis(answer.extra)
-    recreation = _extract_recreation(answer.extra)
     persona = _resolve_persona_out(body.persona_id, answer.extra)
 
     return ChatCompletionResponse(
@@ -209,11 +206,10 @@ def chat_completions(
             for c in answer.citations
         ],
         analysis=analysis,
-        recreation=recreation,
         extra={
             k: v
             for k, v in answer.extra.items()
-            if k not in {"review", "recreated"} and _is_json_safe(v)
+            if k != "review" and _is_json_safe(v)
         },
     )
 
@@ -252,7 +248,6 @@ def _extract_analysis(extra: dict) -> AnalysisOut | None:
                 for item in list(getattr(injection, "findings", []) or [])
             ],
             scanned_chars=int(getattr(injection, "scanned_chars", 0) or 0),
-            blocked_for_llm=bool(getattr(injection, "blocked_for_llm", False)),
             owasp_id=str(getattr(injection, "owasp_id", "LLM01:2025") or "LLM01:2025"),
             owasp_name=str(getattr(injection, "owasp_name", "Prompt Injection") or "Prompt Injection"),
             owasp_url=str(
@@ -275,17 +270,6 @@ def _extract_analysis(extra: dict) -> AnalysisOut | None:
         features=dict(getattr(review, "features", {}) or {}),
         markdown=str(getattr(review, "markdown", "") or ""),
         prompt_injection=prompt_injection,
-    )
-
-
-def _extract_recreation(extra: dict) -> RecreationOut | None:
-    recreated = extra.get("recreated")
-    if recreated is None:
-        return None
-    return RecreationOut(
-        markdown=str(getattr(recreated, "markdown", "") or ""),
-        warnings=list(getattr(recreated, "warnings", []) or []),
-        used_ollama=bool(getattr(recreated, "used_ollama", False)),
     )
 
 

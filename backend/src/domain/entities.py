@@ -6,7 +6,7 @@ São o coração do sistema e podem ser usadas por qualquer camada.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Union
 
 FeatureValue = Union[int, bool, float]
@@ -58,15 +58,6 @@ class WebReference:
 
 
 @dataclass(frozen=True)
-class Improvement:
-    """Sugestão de melhoria para um trecho específico da petição."""
-
-    trecho: str
-    comentario: str
-    categoria: str
-
-
-@dataclass(frozen=True)
 class PromptInjectionFinding:
     """Indício de possível injeção de prompt no texto da petição."""
 
@@ -96,10 +87,6 @@ class PromptInjectionReport:
     objectives: tuple[str, ...] = ()
     verdict: str = "clean"  # clean | suspicious | malicious
 
-    @property
-    def blocked_for_llm(self) -> bool:
-        return self.risk in {"high", "critical"}
-
 
 @dataclass(frozen=True)
 class ReviewResult:
@@ -113,16 +100,6 @@ class ReviewResult:
     similar_chunks: list[SimilarChunk]
     markdown: str
     prompt_injection: PromptInjectionReport | None = None
-
-
-@dataclass(frozen=True)
-class RecreatedPetition:
-    """Petição recriada com comentários inline e referências externas."""
-
-    markdown: str
-    web_references: list[WebReference]
-    used_ollama: bool
-    warnings: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)

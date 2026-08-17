@@ -3,8 +3,7 @@
 A classificação ocorre em três níveis, do mais determinístico ao mais
 inferencial:
 
-1. **Ações sobre petição** (quando há PDF anexado e um verbo de análise/
-   recriação).
+1. **Ações sobre petição** (quando há PDF anexado e um verbo de análise).
 2. **Roteamento explícito**: o usuário usa palavras como "internet",
    "pesquise", "base RAG", "compare com" — decisão imediata.
 3. **Roteamento automático por sinais**: a mensagem não tem palavra-chave
@@ -62,25 +61,6 @@ _ANALYZE_KEYWORDS = (
     "feedback",
     "como esta",
     "qualidade",
-)
-
-_RECREATE_KEYWORDS = (
-    "recrie",
-    "recriar",
-    "recreate",
-    "reescreva",
-    "reescrever",
-    "melhore",
-    "melhorar",
-    "aprimore",
-    "aprimorar",
-    "refazer",
-    "refaca",
-    "reformule",
-    "reformular",
-    "comente",
-    "comentarios inline",
-    "anote",
 )
 
 # ---------------------------------------------------------------------------
@@ -244,12 +224,6 @@ def classify_intent(message: str, *, has_petition: bool) -> ClassifiedIntent:
     normalized = normalize_for_search(message)
     word_count = len(re.findall(r"\w+", normalized))
 
-    if has_petition and _contains_any(normalized, _RECREATE_KEYWORDS):
-        return ClassifiedIntent(
-            intent=Intent.RECREATE_PETITION,
-            reason="Pedido de recriação/melhoria com petição anexada.",
-            mode=RoutingMode.EXPLICIT,
-        )
     if has_petition and _contains_any(normalized, _ANALYZE_KEYWORDS):
         return ClassifiedIntent(
             intent=Intent.ANALYZE_PETITION,
