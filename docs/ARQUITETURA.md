@@ -133,15 +133,21 @@ Pipeline:
 
 ---
 
-## 8. Validação humana (lawyer-in-the-loop)
+## 8. Validação humana (lawyer-in-the-loop) — **SQLite** + dashboard
 
 | Peça | Arquivo |
 |---|---|
 | `SubmitHumanValidationUseCase` / `ListHumanValidationsUseCase` / `GetHumanValidationUseCase` | `application/use_cases/submit_human_validation.py` |
-| `FileSystemValidationRepository` | `infrastructure/persistence/validation_repository.py` |
+| `GetValidationMetricsUseCase` (agregados: médias por dimensão, MAE médio, acordo médio, qualidade final média) | `application/use_cases/validation_metrics.py` |
+| `SQLiteValidationRepository` (tabela `validations` em `validacoes/validacoes.db`; importa JSONs legados na 1ª execução) | `infrastructure/persistence/validation_repository_sqlite.py` |
+| `ValidationRepositoryPort` (port) | `application/ports.py` |
 | `build_validation` / `compute_comparison` (aderência humano×protótipo) | `services/human_comparison.py` |
 
-Rotas: `POST /v1/validations`, `GET /v1/validations[/{id}]`.
+Rotas: `POST /v1/validations`, `GET /v1/validations[/{id}]`, `GET /v1/validations/metrics`.
+
+**Tempos de leitura humana:** `ReadingTimeEntry` (domínio) + `SQLiteReadingTimeRepository` (`infrastructure/persistence/reading_time_repository_sqlite.py`, tabela `reading_times` no mesmo `validacoes.db`) + `SubmitReadingTimeUseCase` / `ListReadingTimesUseCase` (`application/use_cases/reading_times.py`). Rotas: `POST/GET /v1/reading-times` (com média dos tempos) + `PUT/DELETE /v1/reading-times/{id}` (CRUD completo).
+
+**Dashboard (React):** view “Tempo de leitura” alternável no header do chat — formulário simples (nome do advogado + tempo hh:mm), tempo médio e lista de registros, para comparação humano × protótipo no TCC.
 
 ---
 
@@ -161,6 +167,7 @@ Rotas: `POST /v1/validations`, `GET /v1/validations[/{id}]`.
 | POST | `/v1/index/rebuild[/stream]` | `build_index` + relatório do corpus |
 | POST | `/v1/scrape[/stream]` | `DownloadPetitionsUseCase` |
 | POST/GET | `/v1/validations[/{id}]` | use cases de validação |
+| GET | `/v1/validations/metrics` | `GetValidationMetricsUseCase` |
 
 **Outros entrypoints:** Streamlit (`presentation/streamlit/{app,chat_view,classic_view}.py`), CLI (`presentation/cli/commands.py` — `ui` | `api` | `index` | `scrape`).
 

@@ -10,6 +10,7 @@ import {
 import type { IndexStatusResponse, ModelOut, PersonaOut } from './api/types'
 import { ChatBubble } from './components/ChatBubble'
 import { ChatInput } from './components/ChatInput'
+import { DashboardView } from './components/DashboardView'
 import { Sidebar } from './components/Sidebar'
 import { ThemeToggle } from './components/ThemeToggle'
 import { useChat } from './hooks/useChat'
@@ -27,6 +28,7 @@ export default function App() {
   const [busyPercent, setBusyPercent] = useState<number | null>(null)
   const [actionMessage, setActionMessage] = useState<string | null>(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [view, setView] = useState<'chat' | 'dashboard'>('chat')
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const refreshIndexStatus = useCallback(async () => {
@@ -67,8 +69,9 @@ export default function App() {
   }, [refreshIndexStatus])
 
   useEffect(() => {
+    if (view !== 'chat') return
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [chat.messages, chat.isLoading])
+  }, [chat.messages, chat.isLoading, view])
 
   useEffect(() => {
     if (!sidebarOpen) return
@@ -166,61 +169,88 @@ export default function App() {
             ☰
           </button>
           <div className="chat-header-copy">
-            <h1 className="chat-title">Chat IA</h1>
-            <p>Roteamento automático entre RAG, Ollama e Internet</p>
+            <h1 className="chat-title">
+              {view === 'chat' ? 'Chat IA' : 'Tempo de leitura'}
+            </h1>
+            <p>
+              {view === 'chat'
+                ? 'Roteamento automático entre RAG, Ollama e Internet'
+                : 'Registro do tempo humano de leitura × protótipo (TCC)'}
+            </p>
           </div>
           <div className="chat-header-actions">
-            <ThemeToggle theme={theme} onToggle={toggleTheme} />
             <button
               type="button"
               className="new-chat-btn"
-              onClick={chat.clearChat}
+              onClick={() =>
+                setView((current) =>
+                  current === 'chat' ? 'dashboard' : 'chat',
+                )
+              }
             >
-              Nova conversa
+              {view === 'chat' ? 'Tempo de leitura' : 'Chat'}
             </button>
+            <ThemeToggle theme={theme} onToggle={toggleTheme} />
+            {view === 'chat' && (
+              <button
+                type="button"
+                className="new-chat-btn"
+                onClick={chat.clearChat}
+              >
+                Nova conversa
+              </button>
+            )}
           </div>
         </header>
 
-        {chat.petitionName && (
-          <div className="petition-banner">
-            <span>
-              📎 Petição ativa: <strong>{chat.petitionName}</strong>
-            </span>
-            <button
-              type="button"
-              className="link-btn"
-              onClick={chat.clearPetition}
-            >
-              Remover
-            </button>
-          </div>
+        {view === 'dashboard' ? (
+          <section className="dashboard-scroll">
+            <DashboardView />
+          </section>
+        ) : (
+          <>
+            {chat.petitionName && (
+              <div className="petition-banner">
+                <span>
+                  📎 Petição ativa: <strong>{chat.petitionName}</strong>
+                </span>
+                <button
+                  type="button"
+                  className="link-btn"
+                  onClick={chat.clearPetition}
+                >
+                  Remover
+                </button>
+              </div>
+            )}
+
+            <section className="message-list" aria-live="polite">
+              {chat.messages.map((message) => (
+                <ChatBubble key={message.id} message={message} />
+              ))}
+              {chat.isLoading && (
+                <div className="typing">
+                  <span />
+                  <span />
+                  <span />
+                </div>
+              )}
+              <div ref={bottomRef} />
+            </section>
+
+            {chat.error && <div className="error-banner">{chat.error}</div>}
+
+            <ChatInput
+              disabled={chat.isLoading}
+              pendingFile={chat.pendingFile}
+              onFileChange={chat.setPendingFile}
+              onSend={chat.sendMessage}
+              personas={personas}
+              personaId={chat.settings.personaId}
+              onPersonaChange={(personaId) => chat.updateSettings({ personaId })}
+            />
+          </>
         )}
-
-        <section className="message-list" aria-live="polite">
-          {chat.messages.map((message) => (
-            <ChatBubble key={message.id} message={message} />
-          ))}
-          {chat.isLoading && (
-            <div className="typing">
-              <span />
-              <span />
-              <span />
-            </div>
-          )}
-          <div ref={bottomRef} />
-        </section>
-
-        {chat.error && <div className="error-banner">{chat.error}</div>}
-
-        <ChatInput
-          disabled={chat.isLoading}
-          pendingFile={chat.pendingFile}
-          onFileChange={chat.setPendingFile}
-          onSend={chat.sendMessage}
-          personas={personas}
-          personaId={chat.settings.personaId}
-          onPersonaChange={(personaId) => chat.updateSettings({ personaId })}
-        />
       </main>
     </div>
   )

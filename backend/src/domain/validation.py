@@ -88,3 +88,24 @@ class HumanValidationInput:
     legal_basis_ok: bool = False
     final_quality: int = 3
     comments: str = ""
+
+
+@dataclass(frozen=True)
+class ReadingTimeEntry:
+    """Registro simples: tempo que um advogado gastou lendo uma petição."""
+
+    entry_id: str
+    lawyer_name: str
+    minutes: int
+    created_at: str
+
+
+@dataclass(frozen=True)
+class AnalysisTimeEntry:
+    """Tempo real gasto pela aplicação ao analisar uma petição."""
+
+    entry_id: str
+    petition_name: str
+    seconds: float
+    created_at: str
+    source: str = "auto"  # auto | measure

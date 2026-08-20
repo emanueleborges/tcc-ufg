@@ -15,8 +15,15 @@ from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
 
 from src.container import AppContainer
+from src.application.use_cases.analysis_times import format_seconds
+from src.application.use_cases.reading_times import format_minutes
 from src.domain.chat import ChatMessage, ChatRole
-from src.domain.validation import HumanValidation, HumanValidationInput, ProblemAssessment
+from src.domain.validation import (
+    HumanValidation,
+    HumanValidationInput,
+    ProblemAssessment,
+    ReadingTimeEntry,
+)
 from src.presentation.api.deps import get_container
 from src.presentation.api.schemas import (
     AnalysisOut,
@@ -41,8 +48,19 @@ from src.presentation.api.schemas import (
     PromptInjectionOut,
     RoutingOut,
     ScrapeResponse,
+    AnalysisTimeListResponse,
+    AnalysisTimeOut,
+    AnalysisTimeSummaryOut,
+    MeasureAnalysisTimeRequest,
+    MeasureAnalysisTimeResponse,
+    ReadingTimeCreateRequest,
+    ReadingTimeListResponse,
+    ReadingTimeOut,
+    ReadingTimeSummaryOut,
+    ReadingTimeUpdateRequest,
     SourceOut,
     UploadResponse,
+    ValidationMetricsResponse,
     ValidationSummaryOut,
 )
 
@@ -531,6 +549,183 @@ def list_human_validations(
     return HumanValidationListResponse(
         items=[_validation_to_out(item) for item in items],
         summary=ValidationSummaryOut(**summary),
+    )
+
+
+@router.get(
+    "/v1/validations/metrics",
+    response_model=ValidationMetricsResponse,
+    tags=["validation"],
+    summary="Métricas agregadas das validações humanas (dashboard do TCC)",
+)
+def validation_metrics(
+    container: AppContainer = Depends(get_container),
+) -> ValidationMetricsResponse:
+    return ValidationMetricsResponse(
+        **container.get_validation_metrics_use_case.execute()
+    )
+
+
+# ---------------------------------------------------------------------------
+# Tempos de leitura humana (registro simples: advogado + tempo)
+# ---------------------------------------------------------------------------
+
+
+@router.post(
+    "/v1/reading-times",
+    response_model=ReadingTimeOut,
+    tags=["reading-times"],
+    summary="Registra o tempo que um advogado gastou lendo uma petição",
+)
+def create_reading_time(
+    body: ReadingTimeCreateRequest,
+    container: AppContainer = Depends(get_container),
+) -> ReadingTimeOut:
+    try:
+        entry = container.submit_reading_time_use_case.execute(
+            lawyer_name=body.lawyer_name,
+            minutes=body.minutes,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _reading_time_to_out(entry)
+
+
+@router.get(
+    "/v1/reading-times",
+    response_model=ReadingTimeListResponse,
+    tags=["reading-times"],
+    summary="Lista tempos de leitura humanos e a média",
+)
+def list_reading_times(
+    container: AppContainer = Depends(get_container),
+) -> ReadingTimeListResponse:
+    items, summary = container.list_reading_times_use_case.execute()
+    return ReadingTimeListResponse(
+        items=[_reading_time_to_out(item) for item in items],
+        summary=ReadingTimeSummaryOut(**summary),
+    )
+
+
+@router.put(
+    "/v1/reading-times/{entry_id}",
+    response_model=ReadingTimeOut,
+    tags=["reading-times"],
+    summary="Atualiza um registro de tempo de leitura",
+)
+def update_reading_time(
+    entry_id: str,
+    body: ReadingTimeUpdateRequest,
+    container: AppContainer = Depends(get_container),
+) -> ReadingTimeOut:
+    try:
+        updated = container.update_reading_time_use_case.execute(
+            entry_id=entry_id,
+            lawyer_name=body.lawyer_name,
+            minutes=body.minutes,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    if not updated:
+        raise HTTPException(status_code=404, detail="Registro não encontrado.")
+    entry = container.reading_time_repository.get(entry_id)
+    if entry is None:
+        raise HTTPException(status_code=404, detail="Registro não encontrado.")
+    return _reading_time_to_out(entry)
+
+
+@router.delete(
+    "/v1/reading-times/{entry_id}",
+    status_code=204,
+    tags=["reading-times"],
+    summary="Remove um registro de tempo de leitura",
+)
+def delete_reading_time(
+    entry_id: str,
+    container: AppContainer = Depends(get_container),
+) -> None:
+    deleted = container.delete_reading_time_use_case.execute(entry_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Registro não encontrado.")
+
+
+
+
+@router.get(
+    "/v1/analysis-times",
+    response_model=AnalysisTimeListResponse,
+    tags=["analysis-times"],
+    summary="Lista medições reais de tempo da análise pela aplicação",
+)
+def list_analysis_times(
+    container: AppContainer = Depends(get_container),
+) -> AnalysisTimeListResponse:
+    items, summary = container.list_analysis_times_use_case.execute()
+    return AnalysisTimeListResponse(
+        items=[_analysis_time_to_out(item) for item in items],
+        summary=AnalysisTimeSummaryOut(**summary),
+    )
+
+
+@router.post(
+    "/v1/analysis-times/measure",
+    response_model=MeasureAnalysisTimeResponse,
+    tags=["analysis-times"],
+    summary="Mede o tempo real da análise (N execuções) e atualiza a média",
+)
+def measure_analysis_times(
+    body: MeasureAnalysisTimeRequest | None = None,
+    container: AppContainer = Depends(get_container),
+) -> MeasureAnalysisTimeResponse:
+    body = body or MeasureAnalysisTimeRequest()
+    chunks, documents, embeddings = container.load_or_build_index_use_case.execute()
+    petition_path = None
+    if body.petition_id:
+        from pathlib import Path
+        uploads = container.settings.paths.uploads_dir
+        matches = list(uploads.glob(f"{body.petition_id}_*.pdf"))
+        if not matches:
+            matches = list(uploads.glob(f"*{body.petition_id}*.pdf"))
+        if not matches:
+            raise HTTPException(status_code=404, detail="Petição não encontrada em uploads/.")
+        petition_path = matches[0]
+    try:
+        result = container.measure_analysis_time_use_case.execute(
+            chunks=chunks,
+            documents=documents,
+            embeddings=embeddings,
+            runs=body.runs,
+            petition_path=petition_path,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return MeasureAnalysisTimeResponse(
+        petition_name=result["petition_name"],
+        runs=result["runs"],
+        mean_seconds=result["mean_seconds"],
+        mean_label=result["mean_label"],
+        items=[_analysis_time_to_out(item) for item in result["items"]],
+    )
+
+
+def _analysis_time_to_out(entry) -> AnalysisTimeOut:
+    return AnalysisTimeOut(
+        entry_id=entry.entry_id,
+        petition_name=entry.petition_name,
+        seconds=entry.seconds,
+        label=format_seconds(entry.seconds),
+        created_at=entry.created_at,
+        source=entry.source,
+    )
+
+
+def _reading_time_to_out(entry: ReadingTimeEntry) -> ReadingTimeOut:
+    return ReadingTimeOut(
+        entry_id=entry.entry_id,
+        lawyer_name=entry.lawyer_name,
+        minutes=entry.minutes,
+        label=format_minutes(entry.minutes),
+        created_at=entry.created_at,
     )
 
 

@@ -37,6 +37,6 @@ downloads_peticoes/metadata.csv
 # Relatórios gerados (PDF); Markdown de corpus pode ser versionado
 relatorios/*.pdf
 
-# Validações humanas (JSON/MD gerados; mantém a pasta)
+# Validações humanas (SQLite + JSON/MD legados; mantém a pasta)
 validacoes/*
 !validacoes/.gitkeep

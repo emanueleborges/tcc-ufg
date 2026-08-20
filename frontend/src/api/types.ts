@@ -135,6 +135,71 @@ export interface HumanValidationListResponse {
   }
 }
 
+export interface DimensionMetric {
+  name: string
+  label: string
+  mean_prototype: number
+  mean_human: number
+  mean_gap: number
+}
+
+export interface ProblemVerdicts {
+  confirmed: number
+  partial: number
+  rejected: number
+  total: number
+}
+
+export interface ValidationMetricsResponse {
+  count: number
+  petitions: number
+  reviewers: number
+  mean_mae: number | null
+  mean_agreement_rate: number | null
+  mean_final_quality: number | null
+  dimensions: DimensionMetric[]
+  problems: ProblemVerdicts
+}
+
+export interface ReadingTimeEntry {
+  entry_id: string
+  lawyer_name: string
+  minutes: number
+  label: string
+  created_at: string
+}
+
+export interface ReadingTimeListResponse {
+  items: ReadingTimeEntry[]
+  summary: {
+    count: number
+    mean_minutes: number | null
+    mean_label: string | null
+    prototype_mean_seconds?: number
+    prototype_mean_label?: string
+    prototype_measurements?: number
+    prototype_source?: 'measured' | 'fallback' | string
+    speedup_factor?: number | null
+  }
+}
+
+export interface AnalysisTimeEntry {
+  entry_id: string
+  petition_name: string
+  seconds: number
+  label: string
+  created_at: string
+  source: string
+}
+
+export interface MeasureAnalysisTimeResponse {
+  petition_name: string
+  runs: number
+  mean_seconds: number
+  mean_label: string
+  items: AnalysisTimeEntry[]
+}
+
 export interface UploadResponse {
   petition_id: string
   file_name: string

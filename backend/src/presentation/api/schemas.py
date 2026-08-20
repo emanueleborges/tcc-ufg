@@ -250,6 +250,106 @@ class ValidationSummaryOut(BaseModel):
     mean_final_quality: Optional[float] = None
 
 
+class DimensionMetricOut(BaseModel):
+    """Média por dimensão: protótipo × humano × gap médio."""
+
+    name: str
+    label: str
+    mean_prototype: float
+    mean_human: float
+    mean_gap: float
+
+
+class ProblemVerdictsOut(BaseModel):
+    confirmed: int = 0
+    partial: int = 0
+    rejected: int = 0
+    total: int = 0
+
+
+class ValidationMetricsResponse(BaseModel):
+    """Agregados do dashboard de validação humana (TCC)."""
+
+    count: int
+    petitions: int
+    reviewers: int
+    mean_mae: Optional[float] = None
+    mean_agreement_rate: Optional[float] = None
+    mean_final_quality: Optional[float] = None
+    dimensions: list[DimensionMetricOut] = Field(default_factory=list)
+    problems: ProblemVerdictsOut = Field(default_factory=ProblemVerdictsOut)
+
+
+# --- Tempos de leitura humana (advogado + tempo gasto) ---
+
+
+class ReadingTimeCreateRequest(BaseModel):
+    lawyer_name: str
+    minutes: int
+
+
+class ReadingTimeUpdateRequest(BaseModel):
+    lawyer_name: str
+    minutes: int
+
+
+class ReadingTimeOut(BaseModel):
+    entry_id: str
+    lawyer_name: str
+    minutes: int
+    label: str
+    created_at: str
+
+
+class ReadingTimeSummaryOut(BaseModel):
+    count: int
+    mean_minutes: Optional[float] = None
+    mean_label: Optional[str] = None
+    prototype_mean_seconds: float = 1.3
+    prototype_mean_label: str = "1,3 s"
+    prototype_measurements: int = 0
+    prototype_source: str = "fallback"
+    speedup_factor: Optional[int] = None
+
+
+class AnalysisTimeOut(BaseModel):
+    entry_id: str
+    petition_name: str
+    seconds: float
+    label: str
+    created_at: str
+    source: str
+
+
+class AnalysisTimeSummaryOut(BaseModel):
+    count: int
+    mean_seconds: Optional[float] = None
+    mean_label: Optional[str] = None
+
+
+class AnalysisTimeListResponse(BaseModel):
+    items: list[AnalysisTimeOut]
+    summary: AnalysisTimeSummaryOut
+
+
+class MeasureAnalysisTimeRequest(BaseModel):
+    runs: int = 3
+    petition_id: Optional[str] = None
+
+
+class MeasureAnalysisTimeResponse(BaseModel):
+    petition_name: str
+    runs: int
+    mean_seconds: float
+    mean_label: str
+    items: list[AnalysisTimeOut]
+
+
+class ReadingTimeListResponse(BaseModel):
+    items: list[ReadingTimeOut]
+    summary: ReadingTimeSummaryOut
+
+
 class HumanValidationListResponse(BaseModel):
     items: list[HumanValidationOut]
     summary: ValidationSummaryOut

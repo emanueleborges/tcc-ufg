@@ -9,8 +9,12 @@ import type {
   IndexStatusResponse,
   ModelsListResponse,
   PersonasListResponse,
+  ReadingTimeEntry,
+  ReadingTimeListResponse,
+  MeasureAnalysisTimeResponse,
   ScrapeResponse,
   UploadResponse,
+  ValidationMetricsResponse,
 } from './types'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
@@ -165,4 +169,64 @@ export async function submitHumanValidation(
 
 export async function listHumanValidations(): Promise<HumanValidationListResponse> {
   return request('/v1/validations')
+}
+
+export async function getValidationMetrics(): Promise<ValidationMetricsResponse> {
+  return request('/v1/validations/metrics')
+}
+
+export async function submitReadingTime(params: {
+  lawyerName: string
+  minutes: number
+}): Promise<ReadingTimeEntry> {
+  return request('/v1/reading-times', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ lawyer_name: params.lawyerName, minutes: params.minutes }),
+  })
+}
+
+export async function listReadingTimes(): Promise<ReadingTimeListResponse> {
+  return request('/v1/reading-times')
+}
+
+export async function measureAnalysisTimes(params?: {
+  runs?: number
+  petitionId?: string | null
+}): Promise<MeasureAnalysisTimeResponse> {
+  return request('/v1/analysis-times/measure', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      runs: params?.runs ?? 3,
+      petition_id: params?.petitionId ?? null,
+    }),
+  })
+}
+
+export async function updateReadingTime(
+  entryId: string,
+  params: { lawyerName: string; minutes: number },
+): Promise<ReadingTimeEntry> {
+  return request(`/v1/reading-times/${entryId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ lawyer_name: params.lawyerName, minutes: params.minutes }),
+  })
+}
+
+export async function deleteReadingTime(entryId: string): Promise<void> {
+  const response = await fetch(`${API_BASE}/v1/reading-times/${entryId}`, {
+    method: 'DELETE',
+  })
+  if (!response.ok) {
+    let detail = `Erro HTTP ${response.status}`
+    try {
+      const body = await response.json()
+      detail = body.detail || detail
+    } catch {
+      /* ignore */
+    }
+    throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail))
+  }
 }

@@ -12,13 +12,20 @@ from functools import cached_property
 from src.application.use_cases import (
     AnalyzePetitionUseCase,
     BuildIndexUseCase,
+    DeleteReadingTimeUseCase,
     ChatWithAssistantUseCase,
     DownloadPetitionsUseCase,
     GenerateCorpusReportUseCase,
     GetHumanValidationUseCase,
+    GetValidationMetricsUseCase,
+    ListAnalysisTimesUseCase,
     ListHumanValidationsUseCase,
+    ListReadingTimesUseCase,
     LoadOrBuildIndexUseCase,
+    MeasureAnalysisTimeUseCase,
     SubmitHumanValidationUseCase,
+    SubmitReadingTimeUseCase,
+    UpdateReadingTimeUseCase,
 )
 from src.config.settings import Settings, get_settings
 from src.domain.chat import Intent
@@ -27,8 +34,15 @@ from src.infrastructure.nlp.embedding_engine import SentenceTransformerEmbedding
 from src.infrastructure.pdf.pdf_reader import PdfReader
 from src.infrastructure.pdf.pdf_writer import ReportlabPdfWriter
 from src.infrastructure.persistence.chroma_index_repository import ChromaIndexRepository
-from src.infrastructure.persistence.validation_repository import (
-    FileSystemValidationRepository,
+from src.infrastructure.persistence.analysis_time_repository_sqlite import (
+    SQLiteAnalysisTimeRepository,
+)
+from src.infrastructure.persistence.reading_time_repository_sqlite import (
+    SQLiteReadingTimeRepository,
+)
+from src.infrastructure.persistence.validation_repository_sqlite import (
+    DB_FILE_NAME as VALIDATION_DB_FILE,
+    SQLiteValidationRepository,
 )
 from src.infrastructure.scraping.pdf_scraper import PdfScraper
 from src.infrastructure.search.duckduckgo_search import DuckDuckGoWebSearch
@@ -72,8 +86,11 @@ class AppContainer:
         return ChromaIndexRepository(self.settings.paths.index_dir)
 
     @cached_property
-    def validation_repository(self) -> FileSystemValidationRepository:
-        return FileSystemValidationRepository(self.settings.paths.validations_dir)
+    def validation_repository(self) -> SQLiteValidationRepository:
+        return SQLiteValidationRepository(
+            self.settings.paths.validations_dir / VALIDATION_DB_FILE,
+            legacy_dir=self.settings.paths.validations_dir,
+        )
 
     @cached_property
     def web_search(self) -> DuckDuckGoWebSearch:
@@ -110,11 +127,18 @@ class AppContainer:
         )
 
     @cached_property
+    def analysis_time_repository(self) -> SQLiteAnalysisTimeRepository:
+        return SQLiteAnalysisTimeRepository(
+            self.settings.paths.validations_dir / VALIDATION_DB_FILE
+        )
+
+    @cached_property
     def analyze_petition_use_case(self) -> AnalyzePetitionUseCase:
         return AnalyzePetitionUseCase(
             chunk_factory=self.chunk_factory,
             semantic_search=self.semantic_search,
             rag_settings=self.settings.rag,
+            analysis_time_repository=self.analysis_time_repository,
         )
 
     @cached_property
@@ -136,6 +160,47 @@ class AppContainer:
     @cached_property
     def get_human_validation_use_case(self) -> GetHumanValidationUseCase:
         return GetHumanValidationUseCase(self.validation_repository)
+
+    @cached_property
+    def get_validation_metrics_use_case(self) -> GetValidationMetricsUseCase:
+        return GetValidationMetricsUseCase(self.validation_repository)
+
+    @cached_property
+    def reading_time_repository(self) -> SQLiteReadingTimeRepository:
+        return SQLiteReadingTimeRepository(
+            self.settings.paths.validations_dir / VALIDATION_DB_FILE
+        )
+
+    @cached_property
+    def submit_reading_time_use_case(self) -> SubmitReadingTimeUseCase:
+        return SubmitReadingTimeUseCase(self.reading_time_repository)
+
+    @cached_property
+    def list_reading_times_use_case(self) -> ListReadingTimesUseCase:
+        return ListReadingTimesUseCase(
+            self.reading_time_repository,
+            analysis_repository=self.analysis_time_repository,
+        )
+
+    @cached_property
+    def list_analysis_times_use_case(self) -> ListAnalysisTimesUseCase:
+        return ListAnalysisTimesUseCase(self.analysis_time_repository)
+
+    @cached_property
+    def measure_analysis_time_use_case(self) -> MeasureAnalysisTimeUseCase:
+        return MeasureAnalysisTimeUseCase(
+            analyze=self.analyze_petition_use_case,
+            repository=self.analysis_time_repository,
+            uploads_dir=self.settings.paths.uploads_dir,
+        )
+
+    @cached_property
+    def update_reading_time_use_case(self) -> UpdateReadingTimeUseCase:
+        return UpdateReadingTimeUseCase(self.reading_time_repository)
+
+    @cached_property
+    def delete_reading_time_use_case(self) -> DeleteReadingTimeUseCase:
+        return DeleteReadingTimeUseCase(self.reading_time_repository)
 
     # ----- chatbot (LangChain) -----
     @cached_property

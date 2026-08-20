@@ -5,13 +5,11 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
+from src.application.ports import ValidationRepositoryPort
 from src.domain.validation import (
     QUALITY_DIMENSIONS,
     HumanValidation,
     HumanValidationInput,
-)
-from src.infrastructure.persistence.validation_repository import (
-    FileSystemValidationRepository,
 )
 from src.services.human_comparison import build_validation
 from src.services.scoring import quality_scores_only
@@ -20,7 +18,7 @@ from src.services.scoring import quality_scores_only
 class SubmitHumanValidationUseCase:
     """Persiste a validação do advogado e calcula a comparação com o protótipo."""
 
-    def __init__(self, repository: FileSystemValidationRepository) -> None:
+    def __init__(self, repository: ValidationRepositoryPort) -> None:
         self._repository = repository
 
     def execute(self, payload: HumanValidationInput) -> HumanValidation:
@@ -64,7 +62,7 @@ class SubmitHumanValidationUseCase:
 class ListHumanValidationsUseCase:
     """Lista validações e agrega métricas de aderência."""
 
-    def __init__(self, repository: FileSystemValidationRepository) -> None:
+    def __init__(self, repository: ValidationRepositoryPort) -> None:
         self._repository = repository
 
     def execute(self) -> tuple[list[HumanValidation], dict]:
@@ -95,7 +93,7 @@ class ListHumanValidationsUseCase:
 
 
 class GetHumanValidationUseCase:
-    def __init__(self, repository: FileSystemValidationRepository) -> None:
+    def __init__(self, repository: ValidationRepositoryPort) -> None:
         self._repository = repository
 
     def execute(self, validation_id: str) -> HumanValidation | None:

@@ -19,6 +19,7 @@ from src.domain.entities import (
     ReviewResult,
     WebReference,
 )
+from src.domain.validation import HumanValidation
 
 
 @runtime_checkable
@@ -77,6 +78,17 @@ class WebSearchPort(Protocol):
         query: str,
         max_results: int,
     ) -> list[WebReference]: ...
+
+
+@runtime_checkable
+class ValidationRepositoryPort(Protocol):
+    """Persistência das validações humanas (lawyer-in-the-loop)."""
+
+    def save(self, validation: HumanValidation) -> None: ...
+
+    def get(self, validation_id: str) -> HumanValidation | None: ...
+
+    def list_all(self) -> list[HumanValidation]: ...
 
 
 @runtime_checkable
