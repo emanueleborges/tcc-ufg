@@ -17,9 +17,13 @@ from src.domain.entities import (
     ReviewResult,
     SimilarChunk,
 )
-from src.domain.validation import AnalysisTimeEntry
+from src.domain.validation import AnalysisTimeEntry, ApplicationEvaluationEntry
+from src.application.ports import ApplicationEvaluationRepositoryPort
 from src.infrastructure.persistence.analysis_time_repository_sqlite import (
     SQLiteAnalysisTimeRepository,
+)
+from src.infrastructure.persistence.application_evaluation_repository_sqlite import (
+    scores_to_percent,
 )
 from src.services.benchmarks import BenchmarkMap, compute_corpus_benchmarks
 from src.services.chunk_factory import ChunkFactory
@@ -41,12 +45,15 @@ class AnalyzePetitionUseCase:
         rag_settings: RagSettings,
         prompt_injection_analyzer: PromptInjectionAnalyzer | None = None,
         analysis_time_repository: SQLiteAnalysisTimeRepository | None = None,
+        application_evaluation_repository: ApplicationEvaluationRepositoryPort
+        | None = None,
     ) -> None:
         self._chunk_factory = chunk_factory
         self._semantic_search = semantic_search
         self._rag = rag_settings
         self._injection_analyzer = prompt_injection_analyzer or PromptInjectionAnalyzer()
         self._analysis_times = analysis_time_repository
+        self._application_evaluations = application_evaluation_repository
 
     def execute(
         self,
@@ -57,8 +64,12 @@ class AnalyzePetitionUseCase:
         *,
         record_time: bool = True,
         time_source: str = "auto",
+        petition_id: str | None = None,
     ) -> ReviewResult:
         started = time.perf_counter()
+        resolved_petition_id = (petition_id or "").strip() or _extract_petition_id(
+            petition_path
+        )
         petition_chunks, petition_summary = self._chunk_factory.build_for_pdf(petition_path)
         full_text = "\n\n".join(chunk.text for chunk in petition_chunks)
         injection = self._injection_analyzer.analyze_petition(
@@ -121,16 +132,41 @@ class AnalyzePetitionUseCase:
 
         if record_time and self._analysis_times is not None:
             elapsed = time.perf_counter() - started
+            created_at = datetime.now(timezone.utc).isoformat()
             self._analysis_times.save(
                 AnalysisTimeEntry(
                     entry_id=uuid.uuid4().hex[:12],
                     petition_name=petition_path.name,
                     seconds=round(elapsed, 3),
-                    created_at=datetime.now(timezone.utc).isoformat(),
+                    created_at=created_at,
                     source=time_source,
                 )
             )
+            if self._application_evaluations is not None:
+                injection_risk = str(getattr(injection, "risk", "none") or "none")
+                injection_score = int(getattr(injection, "score", 0) or 0)
+                self._application_evaluations.upsert(
+                    ApplicationEvaluationEntry(
+                        entry_id=uuid.uuid4().hex[:12],
+                        petition_name=petition_path.name,
+                        scores=scores_to_percent(dict(scores)),
+                        problems=list(problems),
+                        injection_risk=injection_risk,
+                        injection_score=injection_score,
+                        created_at=created_at,
+                        seconds=round(elapsed, 3),
+                        petition_id=resolved_petition_id,
+                    )
+                )
         return result
+
+
+def _extract_petition_id(petition_path: Path) -> str | None:
+    """Extrai o prefixo ``{petition_id}_`` do nome do arquivo de upload."""
+    name = petition_path.name
+    if "_" in name and len(name.split("_", 1)[0]) == 12:
+        return name.split("_", 1)[0].lower()
+    return None
 
 
 def _detect_problems_and_suggestions(

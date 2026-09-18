@@ -24,6 +24,8 @@ DIMENSION_LABELS: dict[str, str] = {
     "elementos_essenciais": "Elementos essenciais",
 }
 
+REQUIRED_EVALUATIONS = 30
+
 ProblemVerdict = Literal["confirmed", "partial", "rejected"]
 
 
@@ -47,6 +49,27 @@ class ComparisonMetrics:
     problems_partial: int
     problems_rejected: int
     summary: str
+    general_gap: float = 0.0
+
+
+@dataclass(frozen=True)
+class Evaluator:
+    """Avaliador fixo da coorte de 30."""
+
+    evaluator_id: str
+    name: str
+    sort_order: int
+
+
+@dataclass(frozen=True)
+class CampaignProgress:
+    """Progresso da campanha humana de uma petição."""
+
+    petition_id: str
+    required: int
+    completed: int
+    remaining: int
+    is_complete: bool
 
 
 @dataclass(frozen=True)
@@ -66,10 +89,13 @@ class HumanValidation:
     textual_cohesion_ok: bool
     argumentative_consistency_ok: bool
     legal_basis_ok: bool
-    final_quality: int  # 1–5
+    general_score: float  # 0–100 (confiança %)
+    application_use_score: float  # 0 = NÃO, 100 = SIM
     comments: str
     comparison: ComparisonMetrics
     markdown_report: str = ""
+    reading_minutes: int = 0  # tempo de avaliação humana
+    evaluator_id: str | None = None  # None = legado sem vínculo
 
 
 @dataclass
@@ -86,18 +112,22 @@ class HumanValidationInput:
     textual_cohesion_ok: bool = False
     argumentative_consistency_ok: bool = False
     legal_basis_ok: bool = False
-    final_quality: int = 3
+    general_score: float = 0.0
+    application_use_score: float = 0.0  # 0 = NÃO, 100 = SIM
     comments: str = ""
+    reading_minutes: int = 0
+    evaluator_id: str | None = None
 
 
 @dataclass(frozen=True)
 class ReadingTimeEntry:
-    """Registro simples: tempo que um advogado gastou lendo uma petição."""
+    """Registro único de tempo de avaliação humana por avaliador (eficiência)."""
 
     entry_id: str
     lawyer_name: str
     minutes: int
     created_at: str
+    evaluator_id: str | None = None
 
 
 @dataclass(frozen=True)
@@ -109,3 +139,18 @@ class AnalysisTimeEntry:
     seconds: float
     created_at: str
     source: str = "auto"  # auto | measure
+
+
+@dataclass(frozen=True)
+class ApplicationEvaluationEntry:
+    """Snapshot das notas da aplicação em uma análise de petição (0–100%)."""
+
+    entry_id: str
+    petition_name: str
+    scores: dict[str, float]
+    problems: list[str]
+    injection_risk: str
+    injection_score: int
+    created_at: str
+    seconds: float | None = None
+    petition_id: str | None = None  # None = legado não vinculado

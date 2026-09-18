@@ -35,6 +35,14 @@ class FileSystemValidationRepository:
             return None
         return _from_dict(json.loads(path.read_text(encoding="utf-8")))
 
+    def delete(self, validation_id: str) -> bool:
+        json_path = self._dir / f"{validation_id}.json"
+        report_path = self._dir / f"{validation_id}.md"
+        existed = json_path.exists()
+        json_path.unlink(missing_ok=True)
+        report_path.unlink(missing_ok=True)
+        return existed
+
     def list_all(self) -> list[HumanValidation]:
         items: list[HumanValidation] = []
         for path in sorted(self._dir.glob("*.json"), reverse=True):
@@ -51,6 +59,7 @@ def _to_dict(validation: HumanValidation) -> dict:
         "petition_id": validation.petition_id,
         "petition_name": validation.petition_name,
         "reviewer_name": validation.reviewer_name,
+        "evaluator_id": validation.evaluator_id,
         "created_at": validation.created_at,
         "prototype_scores": validation.prototype_scores,
         "human_scores": validation.human_scores,
@@ -66,8 +75,10 @@ def _to_dict(validation: HumanValidation) -> dict:
         "textual_cohesion_ok": validation.textual_cohesion_ok,
         "argumentative_consistency_ok": validation.argumentative_consistency_ok,
         "legal_basis_ok": validation.legal_basis_ok,
-        "final_quality": validation.final_quality,
+        "general_score": validation.general_score,
+        "application_use_score": validation.application_use_score,
         "comments": validation.comments,
+        "reading_minutes": validation.reading_minutes,
         "comparison": {
             "mae_scores": validation.comparison.mae_scores,
             "agreement_rate": validation.comparison.agreement_rate,
@@ -76,6 +87,7 @@ def _to_dict(validation: HumanValidation) -> dict:
             "problems_partial": validation.comparison.problems_partial,
             "problems_rejected": validation.comparison.problems_rejected,
             "summary": validation.comparison.summary,
+            "general_gap": validation.comparison.general_gap,
         },
         "markdown_report": validation.markdown_report,
     }
@@ -83,6 +95,8 @@ def _to_dict(validation: HumanValidation) -> dict:
 
 def _from_dict(data: dict) -> HumanValidation:
     cmp_data = data["comparison"]
+    evaluator_raw = data.get("evaluator_id")
+    evaluator_id = str(evaluator_raw).strip() if evaluator_raw else None
     return HumanValidation(
         validation_id=data["validation_id"],
         petition_id=data["petition_id"],
@@ -103,8 +117,15 @@ def _from_dict(data: dict) -> HumanValidation:
         textual_cohesion_ok=bool(data.get("textual_cohesion_ok")),
         argumentative_consistency_ok=bool(data.get("argumentative_consistency_ok")),
         legal_basis_ok=bool(data.get("legal_basis_ok")),
-        final_quality=int(data.get("final_quality", 3)),
+        # Registros antigos usavam final_quality em escala 1–5.
+        general_score=float(
+            data["general_score"]
+            if "general_score" in data
+            else float(data.get("final_quality", 0)) * 2
+        ),
+        application_use_score=float(data.get("application_use_score", 0)),
         comments=str(data.get("comments") or ""),
+        reading_minutes=int(data.get("reading_minutes", 0) or 0),
         comparison=ComparisonMetrics(
             mae_scores=float(cmp_data["mae_scores"]),
             agreement_rate=float(cmp_data["agreement_rate"]),
@@ -113,6 +134,8 @@ def _from_dict(data: dict) -> HumanValidation:
             problems_partial=int(cmp_data.get("problems_partial", 0)),
             problems_rejected=int(cmp_data.get("problems_rejected", 0)),
             summary=str(cmp_data.get("summary") or ""),
+            general_gap=float(cmp_data.get("general_gap", 0.0)),
         ),
         markdown_report=str(data.get("markdown_report") or ""),
+        evaluator_id=evaluator_id or None,
     )

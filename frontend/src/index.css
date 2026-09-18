@@ -9,6 +9,10 @@
   --accent: #1f5c45;
   --accent-hover: #174a37;
   --accent-soft: #d8ebe2;
+  --metric-app: #245c9c;
+  --metric-app-soft: #e5eef8;
+  --metric-human: #287a42;
+  --metric-human-soft: #e4f3e8;
   --accent-chip: #e7efe9;
   --user-bg: #1f5c45;
   --user-ink: #f7f4ec;
@@ -75,6 +79,10 @@
   --accent: #6fbf9a;
   --accent-hover: #86d0ad;
   --accent-soft: #1e3a2f;
+  --metric-app: #73a9eb;
+  --metric-app-soft: #162b43;
+  --metric-human: #71c98c;
+  --metric-human-soft: #173522;
   --accent-chip: #24342c;
   --user-bg: #2a6b50;
   --user-ink: #f2faf6;

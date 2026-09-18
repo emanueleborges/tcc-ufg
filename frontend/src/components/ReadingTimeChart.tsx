@@ -10,10 +10,12 @@ interface Props {
 
 const WIDTH = 760
 const HEIGHT = 280
-const PAD = { top: 28, right: 20, bottom: 36, left: 52 }
+const PAD = { top: 44, right: 20, bottom: 36, left: 52 }
 
 function label(minutes: number): string {
-  return `${Math.floor(minutes / 60)}h${String(minutes % 60).padStart(2, '0')}`
+  const hours = Math.floor(minutes / 60)
+  const remainingMinutes = (minutes - hours * 60).toFixed(2).replace('.', ',')
+  return `${hours}h${remainingMinutes.padStart(5, '0')}`
 }
 
 export const ReadingTimeChart = forwardRef<SVGSVGElement, Props>(
@@ -49,10 +51,16 @@ export const ReadingTimeChart = forwardRef<SVGSVGElement, Props>(
           height={HEIGHT}
           className="reading-chart"
           role="img"
-          aria-label="Gráfico de linhas dos tempos de leitura por advogado"
+          aria-label="Gráfico de linhas dos tempos de leitura por avaliador"
           xmlns="http://www.w3.org/2000/svg"
         >
           <rect width={WIDTH} height={HEIGHT} fill="var(--assistant-bg, #1a2420)" />
+          <text x={WIDTH / 2} y={16} className="chart-title">
+            Tempos por avaliador
+          </text>
+          <text x={WIDTH / 2} y={31} className="chart-subtitle">
+            Todas as petições · duração (hh:mm), não notas
+          </text>
 
           {yTicks.map((tick) => (
             <g key={tick}>
@@ -133,9 +141,10 @@ export const ReadingTimeChart = forwardRef<SVGSVGElement, Props>(
           )}
         </svg>
         <div className="chart-legend">
+          <strong className="chart-legend-title">Legenda</strong>
           <span className="legend-item legend-human">média humana</span>
           <span className="legend-item legend-proto">média da aplicação</span>
-          <span className="legend-item legend-series">tempos por advogado</span>
+          <span className="legend-item legend-series">tempos por avaliador</span>
         </div>
       </div>
     )

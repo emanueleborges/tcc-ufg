@@ -12,9 +12,12 @@ import type {
   ReadingTimeEntry,
   ReadingTimeListResponse,
   MeasureAnalysisTimeResponse,
+  ApplicationEvaluationListResponse,
   ScrapeResponse,
   UploadResponse,
   ValidationMetricsResponse,
+  EvaluatorsListResponse,
+  PetitionCampaign,
 } from './types'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || ''
@@ -167,27 +170,85 @@ export async function submitHumanValidation(
   })
 }
 
-export async function listHumanValidations(): Promise<HumanValidationListResponse> {
-  return request('/v1/validations')
+export async function updateHumanValidation(
+  validationId: string,
+  body: HumanValidationCreateRequest,
+): Promise<HumanValidationPayload> {
+  return request(`/v1/validations/${validationId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  })
 }
 
-export async function getValidationMetrics(): Promise<ValidationMetricsResponse> {
-  return request('/v1/validations/metrics')
+export async function deleteHumanValidation(validationId: string): Promise<void> {
+  await request(`/v1/validations/${validationId}`, { method: 'DELETE' })
+}
+
+export async function listHumanValidations(
+  petitionId?: string | null,
+): Promise<HumanValidationListResponse> {
+  const query = petitionId
+    ? `?petition_id=${encodeURIComponent(petitionId)}`
+    : ''
+  return request(`/v1/validations${query}`)
+}
+
+export async function getValidationMetrics(
+  petitionId?: string | null,
+): Promise<ValidationMetricsResponse> {
+  const query = petitionId
+    ? `?petition_id=${encodeURIComponent(petitionId)}`
+    : ''
+  return request(`/v1/validations/metrics${query}`)
+}
+
+export async function listEvaluators(
+  petitionId?: string | null,
+): Promise<EvaluatorsListResponse> {
+  const query = petitionId
+    ? `?petition_id=${encodeURIComponent(petitionId)}`
+    : ''
+  return request(`/v1/evaluators${query}`)
+}
+
+export async function getPetitionCampaign(
+  petitionId: string,
+): Promise<PetitionCampaign> {
+  return request(`/v1/petitions/${encodeURIComponent(petitionId)}/campaign`)
 }
 
 export async function submitReadingTime(params: {
-  lawyerName: string
+  evaluatorId: string
   minutes: number
 }): Promise<ReadingTimeEntry> {
   return request('/v1/reading-times', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ lawyer_name: params.lawyerName, minutes: params.minutes }),
+    body: JSON.stringify({
+      evaluator_id: params.evaluatorId,
+      minutes: params.minutes,
+    }),
   })
 }
 
 export async function listReadingTimes(): Promise<ReadingTimeListResponse> {
   return request('/v1/reading-times')
+}
+
+export async function listApplicationEvaluations(): Promise<ApplicationEvaluationListResponse> {
+  return request('/v1/application-evaluations')
+}
+
+export async function deleteAnalyzedPetition(petitionId: string): Promise<{
+  petition_id: string
+  petition_name: string
+  deleted_snapshot: boolean
+  deleted_validations: number
+}> {
+  return request(`/v1/application-evaluations/${encodeURIComponent(petitionId)}`, {
+    method: 'DELETE',
+  })
 }
 
 export async function measureAnalysisTimes(params?: {
@@ -206,12 +267,15 @@ export async function measureAnalysisTimes(params?: {
 
 export async function updateReadingTime(
   entryId: string,
-  params: { lawyerName: string; minutes: number },
+  params: { evaluatorId?: string; minutes: number },
 ): Promise<ReadingTimeEntry> {
   return request(`/v1/reading-times/${entryId}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ lawyer_name: params.lawyerName, minutes: params.minutes }),
+    body: JSON.stringify({
+      evaluator_id: params.evaluatorId ?? '',
+      minutes: params.minutes,
+    }),
   })
 }
 

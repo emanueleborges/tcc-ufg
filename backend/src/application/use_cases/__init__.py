@@ -15,23 +15,35 @@ from src.application.use_cases.reading_times import (
     SubmitReadingTimeUseCase,
     UpdateReadingTimeUseCase,
 )
+from src.application.use_cases.application_evaluations import (
+    DeleteAnalyzedPetitionUseCase,
+    ListApplicationEvaluationsUseCase,
+    ListEvaluatorsUseCase,
+)
+from src.application.use_cases.validation_metrics import GetValidationMetricsUseCase
 from src.application.use_cases.submit_human_validation import (
+    DeleteHumanValidationUseCase,
+    GetCampaignProgressUseCase,
     GetHumanValidationUseCase,
     ListHumanValidationsUseCase,
     SubmitHumanValidationUseCase,
 )
-from src.application.use_cases.validation_metrics import GetValidationMetricsUseCase
 
 __all__ = [
     "AnalyzePetitionUseCase",
     "BuildIndexUseCase",
     "ChatWithAssistantUseCase",
+    "DeleteAnalyzedPetitionUseCase",
     "DeleteReadingTimeUseCase",
     "DownloadPetitionsUseCase",
+    "DeleteHumanValidationUseCase",
     "GenerateCorpusReportUseCase",
+    "GetCampaignProgressUseCase",
     "GetHumanValidationUseCase",
     "GetValidationMetricsUseCase",
     "ListAnalysisTimesUseCase",
+    "ListApplicationEvaluationsUseCase",
+    "ListEvaluatorsUseCase",
     "ListHumanValidationsUseCase",
     "ListReadingTimesUseCase",
     "LoadOrBuildIndexUseCase",

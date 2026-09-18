@@ -1,12 +1,13 @@
-"""Use cases: registrar e listar tempos de leitura humana de petições."""
+"""Use cases: tempos de avaliação humana (eficiência, 1 por avaliador)."""
 
 from __future__ import annotations
 
 import uuid
 from datetime import datetime, timezone
 
+from src.application.ports import EvaluatorRepositoryPort
 from src.application.use_cases.analysis_times import format_seconds
-from src.domain.validation import ReadingTimeEntry
+from src.domain.validation import REQUIRED_EVALUATIONS, ReadingTimeEntry
 from src.infrastructure.persistence.analysis_time_repository_sqlite import (
     SQLiteAnalysisTimeRepository,
 )
@@ -15,13 +16,16 @@ from src.infrastructure.persistence.reading_time_repository_sqlite import (
 )
 
 
+class ReadingTimeConflictError(ValueError):
+    """Avaliador já possui tempo registrado."""
+
+
 def format_minutes(minutes: float) -> str:
     """120 -> '2h00'."""
     total = int(round(minutes))
     return f"{total // 60}h{total % 60:02d}"
 
 
-# Fallback só quando ainda não há medições reais da aplicação.
 PROTOTYPE_MEAN_SECONDS_FALLBACK = 1.3
 
 
@@ -57,42 +61,123 @@ def _prototype_summary(
 
 
 class SubmitReadingTimeUseCase:
-    """Registra o tempo que um advogado gastou lendo uma petição."""
+    """Registra tempo único por avaliador (máx. 30)."""
 
-    def __init__(self, repository: SQLiteReadingTimeRepository) -> None:
+    def __init__(
+        self,
+        repository: SQLiteReadingTimeRepository,
+        *,
+        evaluators: EvaluatorRepositoryPort | None = None,
+    ) -> None:
         self._repository = repository
+        self._evaluators = evaluators
 
-    def execute(self, lawyer_name: str, minutes: int) -> ReadingTimeEntry:
-        if not lawyer_name.strip():
-            raise ValueError("Informe o nome do advogado.")
+    def execute(
+        self,
+        lawyer_name: str = "",
+        minutes: int = 0,
+        *,
+        evaluator_id: str | None = None,
+        allow_update: bool = False,
+    ) -> ReadingTimeEntry:
         if int(minutes) < 1:
             raise ValueError("Tempo deve ser de pelo menos 1 minuto.")
+
+        resolved_id = (evaluator_id or "").strip() or None
+        name = (lawyer_name or "").strip()
+
+        if self._evaluators is not None:
+            if not resolved_id:
+                raise ValueError("Informe o avaliador (evaluator_id).")
+            evaluator = self._evaluators.get(resolved_id)
+            if evaluator is None:
+                raise ValueError("Avaliador não encontrado.")
+            name = evaluator.name
+            resolved_id = evaluator.evaluator_id
+        elif not name:
+            raise ValueError("Informe o nome do avaliador.")
+
+        existing = (
+            self._repository.find_by_evaluator(resolved_id) if resolved_id else None
+        )
+        if existing is not None and not allow_update:
+            raise ReadingTimeConflictError(
+                "Este avaliador já possui tempo de avaliação registrado."
+            )
+
+        if existing is not None and allow_update:
+            self._repository.update(
+                existing.entry_id,
+                name,
+                int(minutes),
+                evaluator_id=resolved_id,
+            )
+            return ReadingTimeEntry(
+                entry_id=existing.entry_id,
+                lawyer_name=name,
+                minutes=int(minutes),
+                created_at=existing.created_at,
+                evaluator_id=resolved_id,
+            )
+
+        if self._repository.count() >= REQUIRED_EVALUATIONS:
+            raise ReadingTimeConflictError(
+                f"Limite de {REQUIRED_EVALUATIONS} tempos de avaliação atingido."
+            )
+
         entry = ReadingTimeEntry(
             entry_id=uuid.uuid4().hex[:12],
-            lawyer_name=lawyer_name.strip(),
+            lawyer_name=name,
             minutes=int(minutes),
             created_at=datetime.now(timezone.utc).isoformat(),
+            evaluator_id=resolved_id,
         )
         self._repository.save(entry)
         return entry
 
 
 class UpdateReadingTimeUseCase:
-    """Atualiza nome/tempo de um registro existente."""
+    """Atualiza o tempo de um registro existente."""
 
-    def __init__(self, repository: SQLiteReadingTimeRepository) -> None:
+    def __init__(
+        self,
+        repository: SQLiteReadingTimeRepository,
+        *,
+        evaluators: EvaluatorRepositoryPort | None = None,
+    ) -> None:
         self._repository = repository
+        self._evaluators = evaluators
 
-    def execute(self, entry_id: str, lawyer_name: str, minutes: int) -> bool:
-        if not lawyer_name.strip():
-            raise ValueError("Informe o nome do advogado.")
+    def execute(
+        self,
+        entry_id: str,
+        lawyer_name: str = "",
+        minutes: int = 0,
+        *,
+        evaluator_id: str | None = None,
+    ) -> bool:
         if int(minutes) < 1:
             raise ValueError("Tempo deve ser de pelo menos 1 minuto.")
-        return self._repository.update(entry_id, lawyer_name.strip(), int(minutes))
+        current = self._repository.get(entry_id)
+        if current is None:
+            return False
+
+        name = (lawyer_name or current.lawyer_name).strip()
+        resolved_id = (evaluator_id or current.evaluator_id or "").strip() or None
+        if self._evaluators is not None and resolved_id:
+            evaluator = self._evaluators.get(resolved_id)
+            if evaluator is None:
+                raise ValueError("Avaliador não encontrado.")
+            name = evaluator.name
+            resolved_id = evaluator.evaluator_id
+
+        return self._repository.update(
+            entry_id, name, int(minutes), evaluator_id=resolved_id
+        )
 
 
 class DeleteReadingTimeUseCase:
-    """Remove um registro de tempo de leitura."""
+    """Remove um registro de tempo."""
 
     def __init__(self, repository: SQLiteReadingTimeRepository) -> None:
         self._repository = repository
@@ -102,7 +187,7 @@ class DeleteReadingTimeUseCase:
 
 
 class ListReadingTimesUseCase:
-    """Lista os registros e agrega o tempo médio de leitura."""
+    """Lista os até 30 tempos e agrega a média."""
 
     def __init__(
         self,
@@ -119,6 +204,8 @@ class ListReadingTimesUseCase:
                 "count": 0,
                 "mean_minutes": None,
                 "mean_label": None,
+                "required": REQUIRED_EVALUATIONS,
+                "remaining": REQUIRED_EVALUATIONS,
                 **_prototype_summary(None, self._analysis_repository),
             }
         mean = sum(item.minutes for item in items) / len(items)
@@ -126,5 +213,7 @@ class ListReadingTimesUseCase:
             "count": len(items),
             "mean_minutes": round(mean, 1),
             "mean_label": format_minutes(mean),
+            "required": REQUIRED_EVALUATIONS,
+            "remaining": max(0, REQUIRED_EVALUATIONS - len(items)),
             **_prototype_summary(mean, self._analysis_repository),
         }

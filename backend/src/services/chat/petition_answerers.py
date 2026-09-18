@@ -55,6 +55,7 @@ class AnalyzePetitionAnswerer(ChatAnswerPort):
                 chunks=chunks,
                 documents=documents,
                 embeddings=embeddings,
+                petition_id=context.get("petition_id"),
             )
         except Exception as exc:  # noqa: BLE001
             return ChatAnswer(

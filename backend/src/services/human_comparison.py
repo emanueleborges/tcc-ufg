@@ -28,6 +28,11 @@ def compute_comparison(
         abs_errors.append(abs(gap))
 
     mae = round(sum(abs_errors) / len(abs_errors), 2) if abs_errors else 0.0
+    general_gap = round(
+        float(human_scores.get("geral", 0.0) or 0.0)
+        - float(prototype_scores.get("geral", 0.0) or 0.0),
+        2,
+    )
 
     confirmed = sum(1 for a in assessments if a.verdict == "confirmed")
     partial = sum(1 for a in assessments if a.verdict == "partial")
@@ -39,11 +44,11 @@ def compute_comparison(
     else:
         agreement = 1.0
 
-    if mae <= 1.0 and agreement >= 0.75:
+    if mae <= 10.0 and agreement >= 0.75:
         summary = (
             "Alta aderência entre a análise do protótipo e a avaliação humana."
         )
-    elif mae <= 2.5 and agreement >= 0.5:
+    elif mae <= 25.0 and agreement >= 0.5:
         summary = (
             "Aderência moderada: há divergências pontuais que merecem revisão."
         )
@@ -60,6 +65,7 @@ def compute_comparison(
         problems_partial=partial,
         problems_rejected=rejected,
         summary=summary,
+        general_gap=general_gap,
     )
 
 
@@ -72,7 +78,11 @@ def render_validation_markdown(validation: HumanValidation) -> str:
         f"- **Petição:** {validation.petition_name or validation.petition_id}",
         f"- **Avaliador:** {validation.reviewer_name}",
         f"- **Data:** {validation.created_at}",
-        f"- **Qualidade final (1–5):** {validation.final_quality}",
+        f"- **Nota geral (0–10):** {validation.general_score:.1f}",
+        f"- **Nota geral da aplicação (0–10):** "
+        f"{float(validation.prototype_scores.get('geral', 0)):.1f}",
+        f"- **Intenção de utilizar a aplicação (0–10):** "
+        f"{validation.application_use_score:.1f}",
         "",
         "## Checklist do fluxograma",
         "",
@@ -92,6 +102,10 @@ def render_validation_markdown(validation: HumanValidation) -> str:
         human = float(validation.human_scores.get(name, 0.0) or 0.0)
         gap = validation.comparison.dimension_gaps.get(name, human - proto)
         lines.append(f"| {label} | {proto:.1f} | {human:.1f} | {gap:+.1f} |")
+    lines.append(
+        f"| Nota geral | {float(validation.prototype_scores.get('geral', 0.0) or 0.0):.1f} | "
+        f"{validation.general_score:.1f} | {validation.comparison.general_gap:+.1f} |"
+    )
 
     cmp_ = validation.comparison
     lines.extend(
@@ -130,7 +144,7 @@ def build_validation(
 ) -> HumanValidation:
     comparison = compute_comparison(
         payload.prototype_scores,
-        payload.human_scores,
+        {**payload.human_scores, "geral": payload.general_score},
         payload.problem_assessments,
     )
     draft = HumanValidation(
@@ -146,9 +160,12 @@ def build_validation(
         textual_cohesion_ok=payload.textual_cohesion_ok,
         argumentative_consistency_ok=payload.argumentative_consistency_ok,
         legal_basis_ok=payload.legal_basis_ok,
-        final_quality=payload.final_quality,
+        general_score=payload.general_score,
+        application_use_score=payload.application_use_score,
         comments=payload.comments,
         comparison=comparison,
+        reading_minutes=int(payload.reading_minutes),
+        evaluator_id=payload.evaluator_id,
     )
     return HumanValidation(
         **{**draft.__dict__, "markdown_report": render_validation_markdown(draft)}

@@ -1,10 +1,10 @@
 # Relatório — Tempo de avaliação de petição: humano × protótipo
 
-**Objetivo:** comparar o tempo que um advogado leva, humanamente, para ler e avaliar integralmente uma petição com o tempo que a aplicação leva para analisar a mesma petição.
+**Objetivo:** comparar o tempo que um avaliador leva, humanamente, para ler e avaliar integralmente uma petição com o tempo que a aplicação leva para analisar a mesma petição.
 
 ## Avaliação humana
 
-**Amostra:** 30 avaliações realizadas por advogados (`reading_times`).
+**Amostra:** 30 avaliações realizadas por avaliadores (`reading_times`).
 
 | Métrica | Tempo |
 |---|---|
@@ -32,6 +32,14 @@
 | 11 | 041-diario-da-justica… | 5,377 | auto |
 | | **Média (11 medições)** | **3,305 s ≈ 3,3 s** | |
 
+## Outras métricas de validação humana
+
+Além do tempo de análise, cada avaliador deve atribuir notas de 0 a 100% para
+estrutura, clareza, coerência, fundamentação, consistência, elementos essenciais,
+nota geral e intenção de utilizar a aplicação. As médias dessas respostas devem
+ser apresentadas separadamente, junto do MAE e da taxa de concordância entre a
+avaliação humana e o protótipo.
+
 ## Comparação
 
 | | Humano | Aplicação |
@@ -44,6 +52,6 @@
 
 ## Conclusão
 
-Enquanto um advogado leva em média **cerca de 2 horas** para ler e avaliar uma petição completa, a aplicação realiza a análise multidimensional em **cerca de 3,3 segundos** (média real da base), permitindo triagem imediata sem substituir o julgamento jurídico do profissional.
+Enquanto um avaliador leva em média **cerca de 2 horas** para ler e avaliar uma petição completa, a aplicação realiza a análise multidimensional em **cerca de 3,3 segundos** (média real da base), permitindo triagem imediata sem substituir o julgamento jurídico do profissional.
 
 *Fontes: `reading_times` e `analysis_times` no SQLite do dashboard.*

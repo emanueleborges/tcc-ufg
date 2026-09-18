@@ -147,7 +147,7 @@ Rotas: `POST /v1/validations`, `GET /v1/validations[/{id}]`, `GET /v1/validation
 
 **Tempos de leitura humana:** `ReadingTimeEntry` (domínio) + `SQLiteReadingTimeRepository` (`infrastructure/persistence/reading_time_repository_sqlite.py`, tabela `reading_times` no mesmo `validacoes.db`) + `SubmitReadingTimeUseCase` / `ListReadingTimesUseCase` (`application/use_cases/reading_times.py`). Rotas: `POST/GET /v1/reading-times` (com média dos tempos) + `PUT/DELETE /v1/reading-times/{id}` (CRUD completo).
 
-**Dashboard (React):** view “Tempo de leitura” alternável no header do chat — formulário simples (nome do advogado + tempo hh:mm), tempo médio e lista de registros, para comparação humano × protótipo no TCC.
+**Dashboard (React):** view “Métricas” alternável no header do chat — formulário simples (nome do advogado + tempo hh:mm), tempo médio e lista de registros, para comparação humano × protótipo no TCC.
 
 ---
 

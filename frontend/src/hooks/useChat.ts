@@ -28,7 +28,7 @@ function uid() {
 
 export function useChat() {
   const [messages, setMessages] = useState<UiMessage[]>([WELCOME])
-  const [model, setModel] = useState('llama3.1:8b')
+  const [model, setModel] = useState('qwen2.5-coder:7b')
   const [settings, setSettings] = useState<ChatSettings>(DEFAULT_SETTINGS)
   const [petitionId, setPetitionId] = useState<string | null>(null)
   const [petitionName, setPetitionName] = useState<string | null>(null)

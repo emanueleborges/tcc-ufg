@@ -23,7 +23,7 @@ export function exportReadingTimesCsv(
   },
 ): void {
   const rows = [
-    'advogado;tempo;minutos;data',
+    'avaliador;tempo;minutos;data',
     ...[...items]
       .reverse()
       .map((item) => {
@@ -42,7 +42,7 @@ export function exportReadingTimesCsv(
   const blob = new Blob([`${rows.join('\n')}\n`], {
     type: 'text/csv;charset=utf-8',
   })
-  downloadBlob('tempos_leitura_advogados.csv', blob)
+  downloadBlob('tempos_leitura_avaliadores.csv', blob)
 }
 
 function resolveCssColor(value: string, fallback: string): string {

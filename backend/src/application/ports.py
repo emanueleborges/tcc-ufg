@@ -19,7 +19,11 @@ from src.domain.entities import (
     ReviewResult,
     WebReference,
 )
-from src.domain.validation import HumanValidation
+from src.domain.validation import (
+    ApplicationEvaluationEntry,
+    Evaluator,
+    HumanValidation,
+)
 
 
 @runtime_checkable
@@ -88,7 +92,49 @@ class ValidationRepositoryPort(Protocol):
 
     def get(self, validation_id: str) -> HumanValidation | None: ...
 
+    def delete(self, validation_id: str) -> bool: ...
+
     def list_all(self) -> list[HumanValidation]: ...
+
+    def list_by_petition(self, petition_id: str) -> list[HumanValidation]: ...
+
+    def find_by_petition_evaluator(
+        self, petition_id: str, evaluator_id: str
+    ) -> HumanValidation | None: ...
+
+    def count_by_petition(self, petition_id: str) -> int: ...
+
+    def delete_by_petition(self, petition_id: str) -> int: ...
+
+
+@runtime_checkable
+class EvaluatorRepositoryPort(Protocol):
+    """Cadastro fixo dos 30 avaliadores."""
+
+    def list_all(self) -> list[Evaluator]: ...
+
+    def get(self, evaluator_id: str) -> Evaluator | None: ...
+
+
+@runtime_checkable
+class ApplicationEvaluationRepositoryPort(Protocol):
+    """Snapshots das notas da aplicação por petição."""
+
+    def upsert(self, entry: ApplicationEvaluationEntry) -> None: ...
+
+    def get_by_petition_id(
+        self, petition_id: str
+    ) -> ApplicationEvaluationEntry | None: ...
+
+    def list_all(self) -> list[ApplicationEvaluationEntry]: ...
+
+    def list_linked(self) -> list[ApplicationEvaluationEntry]: ...
+
+    def mean_scores(
+        self, *, petition_id: str | None = None
+    ) -> dict[str, float] | None: ...
+
+    def delete_by_petition_id(self, petition_id: str) -> bool: ...
 
 
 @runtime_checkable

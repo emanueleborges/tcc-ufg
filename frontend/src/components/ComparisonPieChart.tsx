@@ -50,7 +50,7 @@ export const ComparisonPieChart = forwardRef<SVGSVGElement, Props>(
     if (humanMeanMinutes == null || humanMeanMinutes <= 0) {
       return (
         <p className="dashboard-hint">
-          Registre tempos humanos para gerar o gráfico de comparação.
+          Registre tempos humanos para gerar o gráfico de tempo.
         </p>
       )
     }
@@ -75,7 +75,17 @@ export const ComparisonPieChart = forwardRef<SVGSVGElement, Props>(
           aria-label="Comparação de tempo médio: humano versus aplicação"
           xmlns="http://www.w3.org/2000/svg"
         >
+          <title>Comparação de tempo: humano e aplicação</title>
+          <desc>
+            Categorias: avaliação humana e avaliação pela aplicação, comparadas pelo tempo médio.
+          </desc>
           <rect width={SIZE} height={SIZE} fill="var(--assistant-bg, #1a2420)" />
+          <text x={CX} y={18} className="pie-title">
+            Tempo humano × app
+          </text>
+          <text x={CX} y={34} className="pie-subtitle">
+            Média global · só duração
+          </text>
           <path
             d={arcPath(CX, CY, R, 0, humanAngle)}
             className="pie-slice-human"
@@ -93,7 +103,9 @@ export const ComparisonPieChart = forwardRef<SVGSVGElement, Props>(
           </text>
         </svg>
 
-        <ul className="pie-legend">
+        <div className="pie-legend-group">
+          <strong className="pie-legend-title">Legenda</strong>
+          <ul className="pie-legend">
           <li>
             <span className="pie-swatch pie-swatch-human" />
             <div>
@@ -112,7 +124,8 @@ export const ComparisonPieChart = forwardRef<SVGSVGElement, Props>(
               </span>
             </div>
           </li>
-        </ul>
+          </ul>
+        </div>
       </div>
     )
   },

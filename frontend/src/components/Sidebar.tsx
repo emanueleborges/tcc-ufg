@@ -62,7 +62,7 @@ export function Sidebar({
           id="model"
           value={model}
           onChange={(e) => onModelChange(e.target.value)}
-          placeholder="llama3.1:8b"
+          placeholder="qwen2.5-coder:7b"
           list="model-suggestions"
         />
         <datalist id="model-suggestions">

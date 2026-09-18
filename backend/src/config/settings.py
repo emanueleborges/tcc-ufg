@@ -150,7 +150,7 @@ class OllamaSettings:
     """Parâmetros para integração com Ollama local."""
 
     host: str = field(default_factory=lambda: os.getenv("OLLAMA_HOST", "http://localhost:11434"))
-    default_model: str = field(default_factory=lambda: os.getenv("OLLAMA_MODEL", "llama3.1:8b"))
+    default_model: str = field(default_factory=lambda: os.getenv("OLLAMA_MODEL", "qwen2.5-coder:7b"))
     timeout_seconds: int = field(default_factory=lambda: _env_int("OLLAMA_TIMEOUT", 240))
     temperature: float = field(default_factory=lambda: _env_float("OLLAMA_TEMPERATURE", 0.2))
     num_ctx: int = field(default_factory=lambda: _env_int("OLLAMA_NUM_CTX", 8192))

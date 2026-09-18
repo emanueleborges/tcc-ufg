@@ -30,6 +30,9 @@ export default function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [view, setView] = useState<'chat' | 'dashboard'>('chat')
   const bottomRef = useRef<HTMLDivElement>(null)
+  const latestAnalysis = [...chat.messages]
+    .reverse()
+    .find((message) => message.role === 'assistant' && message.analysis)?.analysis
 
   const refreshIndexStatus = useCallback(async () => {
     try {
@@ -50,7 +53,9 @@ export default function App() {
         setModels(res.data)
         const ollamaModels = res.data.filter((m) => m.owned_by === 'ollama')
         const preferred =
-          ollamaModels.find((m) => m.id === 'llama3.1:8b') ?? ollamaModels[0]
+          ollamaModels.find((m) => m.id === 'qwen2.5-coder:7b') ??
+          ollamaModels.find((m) => m.id === 'qwen2.5-coder:1.5b') ??
+          ollamaModels[0]
         if (preferred) chat.setModel(preferred.id)
       })
       .catch(() => setModels([]))
@@ -170,7 +175,7 @@ export default function App() {
           </button>
           <div className="chat-header-copy">
             <h1 className="chat-title">
-              {view === 'chat' ? 'Chat IA' : 'Tempo de leitura'}
+              {view === 'chat' ? 'Chat IA' : 'Métricas'}
             </h1>
             <p>
               {view === 'chat'
@@ -188,7 +193,7 @@ export default function App() {
                 )
               }
             >
-              {view === 'chat' ? 'Tempo de leitura' : 'Chat'}
+              {view === 'chat' ? 'Métricas' : 'Chat'}
             </button>
             <ThemeToggle theme={theme} onToggle={toggleTheme} />
             {view === 'chat' && (
@@ -205,7 +210,12 @@ export default function App() {
 
         {view === 'dashboard' ? (
           <section className="dashboard-scroll">
-            <DashboardView />
+            <DashboardView
+              petitionId={chat.petitionId}
+              petitionName={chat.petitionName}
+              prototypeScores={latestAnalysis?.scores}
+              prototypeProblems={latestAnalysis?.problems}
+            />
           </section>
         ) : (
           <>

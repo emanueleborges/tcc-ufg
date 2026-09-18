@@ -89,6 +89,7 @@ export interface ComparisonMetrics {
   problems_partial: number
   problems_rejected: number
   summary: string
+  general_gap: number
 }
 
 export interface HumanValidationPayload {
@@ -96,6 +97,7 @@ export interface HumanValidationPayload {
   petition_id: string
   petition_name: string
   reviewer_name: string
+  evaluator_id?: string | null
   created_at: string
   prototype_scores: Record<string, number>
   human_scores: Record<string, number>
@@ -104,25 +106,30 @@ export interface HumanValidationPayload {
   textual_cohesion_ok: boolean
   argumentative_consistency_ok: boolean
   legal_basis_ok: boolean
-  final_quality: number
+  general_score: number
+  application_use_score: number
   comments: string
+  reading_minutes?: number
   comparison: ComparisonMetrics
   markdown_report: string
 }
 
 export interface HumanValidationCreateRequest {
   petition_id: string
-  petition_name: string
-  reviewer_name: string
-  prototype_scores: Record<string, number>
+  petition_name?: string
+  evaluator_id: string
+  reviewer_name?: string
+  prototype_scores?: Record<string, number>
   human_scores: Record<string, number>
   problem_assessments: ProblemAssessment[]
   documentation_ok: boolean
   textual_cohesion_ok: boolean
   argumentative_consistency_ok: boolean
   legal_basis_ok: boolean
-  final_quality: number
+  general_score: number
+  application_use_score: number
   comments: string
+  reading_minutes?: number
 }
 
 export interface HumanValidationListResponse {
@@ -131,7 +138,8 @@ export interface HumanValidationListResponse {
     count: number
     mean_mae: number | null
     mean_agreement_rate: number | null
-    mean_final_quality: number | null
+    mean_general_score: number | null
+    mean_application_use_score: number | null
   }
 }
 
@@ -156,9 +164,39 @@ export interface ValidationMetricsResponse {
   reviewers: number
   mean_mae: number | null
   mean_agreement_rate: number | null
-  mean_final_quality: number | null
+  mean_general_score: number | null
+  mean_application_use_score: number | null
   dimensions: DimensionMetric[]
   problems: ProblemVerdicts
+  campaign?: {
+    required_evaluations?: number
+    completed?: number
+    remaining?: number
+    is_complete?: boolean
+    completed_petitions?: number
+    linked_petitions?: number
+  }
+}
+
+export interface EvaluatorOut {
+  evaluator_id: string
+  name: string
+  sort_order: number
+  has_responded: boolean
+  validation_id?: string | null
+}
+
+export interface EvaluatorsListResponse {
+  items: EvaluatorOut[]
+  required_evaluations: number
+}
+
+export interface PetitionCampaign {
+  petition_id: string
+  required: number
+  completed: number
+  remaining: number
+  is_complete: boolean
 }
 
 export interface ReadingTimeEntry {
@@ -167,6 +205,7 @@ export interface ReadingTimeEntry {
   minutes: number
   label: string
   created_at: string
+  evaluator_id?: string | null
 }
 
 export interface ReadingTimeListResponse {
@@ -175,6 +214,8 @@ export interface ReadingTimeListResponse {
     count: number
     mean_minutes: number | null
     mean_label: string | null
+    required?: number
+    remaining?: number | null
     prototype_mean_seconds?: number
     prototype_mean_label?: string
     prototype_measurements?: number
@@ -190,6 +231,28 @@ export interface AnalysisTimeEntry {
   label: string
   created_at: string
   source: string
+}
+
+export interface ApplicationEvaluationEntry {
+  entry_id: string
+  petition_id?: string | null
+  petition_name: string
+  scores: Record<string, number>
+  problems: string[]
+  injection_risk: string
+  injection_score: number
+  created_at: string
+  seconds?: number | null
+  campaign?: PetitionCampaign | null
+}
+
+export interface ApplicationEvaluationListResponse {
+  items: ApplicationEvaluationEntry[]
+  summary: {
+    count: number
+    mean_scores: Record<string, number> | null
+    required_evaluations?: number
+  }
 }
 
 export interface MeasureAnalysisTimeResponse {

@@ -12,13 +12,16 @@ from functools import cached_property
 from src.application.use_cases import (
     AnalyzePetitionUseCase,
     BuildIndexUseCase,
+    DeleteAnalyzedPetitionUseCase,
     DeleteReadingTimeUseCase,
+    DeleteHumanValidationUseCase,
     ChatWithAssistantUseCase,
     DownloadPetitionsUseCase,
     GenerateCorpusReportUseCase,
     GetHumanValidationUseCase,
     GetValidationMetricsUseCase,
     ListAnalysisTimesUseCase,
+    ListApplicationEvaluationsUseCase,
     ListHumanValidationsUseCase,
     ListReadingTimesUseCase,
     LoadOrBuildIndexUseCase,
@@ -27,6 +30,8 @@ from src.application.use_cases import (
     SubmitReadingTimeUseCase,
     UpdateReadingTimeUseCase,
 )
+from src.application.use_cases.application_evaluations import ListEvaluatorsUseCase
+from src.application.use_cases.submit_human_validation import GetCampaignProgressUseCase
 from src.config.settings import Settings, get_settings
 from src.domain.chat import Intent
 from src.infrastructure.langchain.ollama_chat import LangChainOllamaChat
@@ -36,6 +41,12 @@ from src.infrastructure.pdf.pdf_writer import ReportlabPdfWriter
 from src.infrastructure.persistence.chroma_index_repository import ChromaIndexRepository
 from src.infrastructure.persistence.analysis_time_repository_sqlite import (
     SQLiteAnalysisTimeRepository,
+)
+from src.infrastructure.persistence.application_evaluation_repository_sqlite import (
+    SQLiteApplicationEvaluationRepository,
+)
+from src.infrastructure.persistence.evaluator_repository_sqlite import (
+    SQLiteEvaluatorRepository,
 )
 from src.infrastructure.persistence.reading_time_repository_sqlite import (
     SQLiteReadingTimeRepository,
@@ -133,13 +144,48 @@ class AppContainer:
         )
 
     @cached_property
+    def evaluator_repository(self) -> SQLiteEvaluatorRepository:
+        return SQLiteEvaluatorRepository(
+            self.settings.paths.validations_dir / VALIDATION_DB_FILE
+        )
+
+    @cached_property
+    def application_evaluation_repository(self) -> SQLiteApplicationEvaluationRepository:
+        return SQLiteApplicationEvaluationRepository(
+            self.settings.paths.validations_dir / VALIDATION_DB_FILE
+        )
+
+    @cached_property
     def analyze_petition_use_case(self) -> AnalyzePetitionUseCase:
         return AnalyzePetitionUseCase(
             chunk_factory=self.chunk_factory,
             semantic_search=self.semantic_search,
             rag_settings=self.settings.rag,
             analysis_time_repository=self.analysis_time_repository,
+            application_evaluation_repository=self.application_evaluation_repository,
         )
+
+    @cached_property
+    def list_application_evaluations_use_case(self) -> ListApplicationEvaluationsUseCase:
+        return ListApplicationEvaluationsUseCase(
+            self.application_evaluation_repository,
+            validations=self.validation_repository,
+        )
+
+    @cached_property
+    def list_evaluators_use_case(self) -> ListEvaluatorsUseCase:
+        return ListEvaluatorsUseCase(self.evaluator_repository)
+
+    @cached_property
+    def delete_analyzed_petition_use_case(self) -> DeleteAnalyzedPetitionUseCase:
+        return DeleteAnalyzedPetitionUseCase(
+            self.application_evaluation_repository,
+            self.validation_repository,
+        )
+
+    @cached_property
+    def get_campaign_progress_use_case(self) -> GetCampaignProgressUseCase:
+        return GetCampaignProgressUseCase(self.validation_repository)
 
     @cached_property
     def download_petitions_use_case(self) -> DownloadPetitionsUseCase:
@@ -151,7 +197,11 @@ class AppContainer:
 
     @cached_property
     def submit_human_validation_use_case(self) -> SubmitHumanValidationUseCase:
-        return SubmitHumanValidationUseCase(self.validation_repository)
+        return SubmitHumanValidationUseCase(
+            self.validation_repository,
+            evaluators=self.evaluator_repository,
+            application_evaluations=self.application_evaluation_repository,
+        )
 
     @cached_property
     def list_human_validations_use_case(self) -> ListHumanValidationsUseCase:
@@ -160,6 +210,10 @@ class AppContainer:
     @cached_property
     def get_human_validation_use_case(self) -> GetHumanValidationUseCase:
         return GetHumanValidationUseCase(self.validation_repository)
+
+    @cached_property
+    def delete_human_validation_use_case(self) -> DeleteHumanValidationUseCase:
+        return DeleteHumanValidationUseCase(self.validation_repository)
 
     @cached_property
     def get_validation_metrics_use_case(self) -> GetValidationMetricsUseCase:
@@ -173,7 +227,10 @@ class AppContainer:
 
     @cached_property
     def submit_reading_time_use_case(self) -> SubmitReadingTimeUseCase:
-        return SubmitReadingTimeUseCase(self.reading_time_repository)
+        return SubmitReadingTimeUseCase(
+            self.reading_time_repository,
+            evaluators=self.evaluator_repository,
+        )
 
     @cached_property
     def list_reading_times_use_case(self) -> ListReadingTimesUseCase:
@@ -196,7 +253,10 @@ class AppContainer:
 
     @cached_property
     def update_reading_time_use_case(self) -> UpdateReadingTimeUseCase:
-        return UpdateReadingTimeUseCase(self.reading_time_repository)
+        return UpdateReadingTimeUseCase(
+            self.reading_time_repository,
+            evaluators=self.evaluator_repository,
+        )
 
     @cached_property
     def delete_reading_time_use_case(self) -> DeleteReadingTimeUseCase:

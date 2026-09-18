@@ -11,12 +11,14 @@ from pathlib import Path
 from queue import Empty, Queue
 from threading import Thread
 
-from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile
 from fastapi.responses import StreamingResponse
 
 from src.container import AppContainer
 from src.application.use_cases.analysis_times import format_seconds
 from src.application.use_cases.reading_times import format_minutes
+from src.application.use_cases.submit_human_validation import CohortConflictError
+from src.application.use_cases.reading_times import ReadingTimeConflictError
 from src.domain.chat import ChatMessage, ChatRole
 from src.domain.validation import (
     HumanValidation,
@@ -33,6 +35,8 @@ from src.presentation.api.schemas import (
     ChatMessageOut,
     CitationOut,
     ComparisonOut,
+    EvaluatorsListResponse,
+    EvaluatorOut,
     HealthResponse,
     HumanValidationCreateRequest,
     HumanValidationListResponse,
@@ -43,6 +47,7 @@ from src.presentation.api.schemas import (
     ModelsListResponse,
     PersonaOut,
     PersonasListResponse,
+    PetitionCampaignOut,
     ProblemAssessmentOut,
     PromptInjectionFindingOut,
     PromptInjectionOut,
@@ -51,6 +56,10 @@ from src.presentation.api.schemas import (
     AnalysisTimeListResponse,
     AnalysisTimeOut,
     AnalysisTimeSummaryOut,
+    ApplicationEvaluationListResponse,
+    ApplicationEvaluationOut,
+    ApplicationEvaluationSummaryOut,
+    DeleteAnalyzedPetitionResponse,
     MeasureAnalysisTimeRequest,
     MeasureAnalysisTimeResponse,
     ReadingTimeCreateRequest,
@@ -184,6 +193,7 @@ def chat_completions(
         "rag_top_k": body.rag_top_k,
         "web_max_results": body.web_max_results,
         "petition_path": petition_path,
+        "petition_id": body.petition_id,
         "persona_id": body.persona_id,
     }
 
@@ -511,6 +521,7 @@ def create_human_validation(
                 petition_id=body.petition_id,
                 petition_name=body.petition_name,
                 reviewer_name=body.reviewer_name,
+                evaluator_id=body.evaluator_id,
                 prototype_scores=body.prototype_scores,
                 human_scores=body.human_scores,
                 problem_assessments=[
@@ -525,10 +536,14 @@ def create_human_validation(
                 textual_cohesion_ok=body.textual_cohesion_ok,
                 argumentative_consistency_ok=body.argumentative_consistency_ok,
                 legal_basis_ok=body.legal_basis_ok,
-                final_quality=body.final_quality,
+                general_score=body.general_score,
+                application_use_score=body.application_use_score,
                 comments=body.comments,
+                reading_minutes=body.reading_minutes,
             )
         )
+    except CohortConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:  # noqa: BLE001
@@ -543,13 +558,62 @@ def create_human_validation(
     summary="Lista validações e resumo de aderência humano × protótipo",
 )
 def list_human_validations(
+    petition_id: str | None = Query(default=None),
     container: AppContainer = Depends(get_container),
 ) -> HumanValidationListResponse:
-    items, summary = container.list_human_validations_use_case.execute()
+    items, summary = container.list_human_validations_use_case.execute(
+        petition_id=petition_id
+    )
     return HumanValidationListResponse(
         items=[_validation_to_out(item) for item in items],
         summary=ValidationSummaryOut(**summary),
     )
+
+
+@router.put(
+    "/v1/validations/{validation_id}",
+    response_model=HumanValidationOut,
+    tags=["validation"],
+    summary="Atualiza uma validação humana",
+)
+def update_human_validation(
+    validation_id: str,
+    body: HumanValidationCreateRequest,
+    container: AppContainer = Depends(get_container),
+) -> HumanValidationOut:
+    try:
+        validation = container.submit_human_validation_use_case.update(
+            validation_id,
+            HumanValidationInput(
+                petition_id=body.petition_id,
+                petition_name=body.petition_name,
+                reviewer_name=body.reviewer_name,
+                evaluator_id=body.evaluator_id,
+                prototype_scores=body.prototype_scores,
+                human_scores=body.human_scores,
+                problem_assessments=[
+                    ProblemAssessment(
+                        problem=item.problem,
+                        verdict=item.verdict,
+                        note=item.note,
+                    )
+                    for item in body.problem_assessments
+                ],
+                documentation_ok=body.documentation_ok,
+                textual_cohesion_ok=body.textual_cohesion_ok,
+                argumentative_consistency_ok=body.argumentative_consistency_ok,
+                legal_basis_ok=body.legal_basis_ok,
+                general_score=body.general_score,
+                application_use_score=body.application_use_score,
+                comments=body.comments,
+                reading_minutes=body.reading_minutes,
+            ),
+        )
+    except CohortConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return _validation_to_out(validation)
 
 
 @router.get(
@@ -559,10 +623,11 @@ def list_human_validations(
     summary="Métricas agregadas das validações humanas (dashboard do TCC)",
 )
 def validation_metrics(
+    petition_id: str | None = Query(default=None),
     container: AppContainer = Depends(get_container),
 ) -> ValidationMetricsResponse:
     return ValidationMetricsResponse(
-        **container.get_validation_metrics_use_case.execute()
+        **container.get_validation_metrics_use_case.execute(petition_id=petition_id)
     )
 
 
@@ -585,7 +650,10 @@ def create_reading_time(
         entry = container.submit_reading_time_use_case.execute(
             lawyer_name=body.lawyer_name,
             minutes=body.minutes,
+            evaluator_id=body.evaluator_id,
         )
+    except ReadingTimeConflictError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     return _reading_time_to_out(entry)
@@ -595,7 +663,7 @@ def create_reading_time(
     "/v1/reading-times",
     response_model=ReadingTimeListResponse,
     tags=["reading-times"],
-    summary="Lista tempos de leitura humanos e a média",
+    summary="Lista tempos de avaliação humanos (máx. 30, um por avaliador)",
 )
 def list_reading_times(
     container: AppContainer = Depends(get_container),
@@ -611,7 +679,7 @@ def list_reading_times(
     "/v1/reading-times/{entry_id}",
     response_model=ReadingTimeOut,
     tags=["reading-times"],
-    summary="Atualiza um registro de tempo de leitura",
+    summary="Atualiza o tempo de um avaliador",
 )
 def update_reading_time(
     entry_id: str,
@@ -623,6 +691,7 @@ def update_reading_time(
             entry_id=entry_id,
             lawyer_name=body.lawyer_name,
             minutes=body.minutes,
+            evaluator_id=body.evaluator_id or None,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
@@ -638,7 +707,7 @@ def update_reading_time(
     "/v1/reading-times/{entry_id}",
     status_code=204,
     tags=["reading-times"],
-    summary="Remove um registro de tempo de leitura",
+    summary="Remove um registro de Métricas",
 )
 def delete_reading_time(
     entry_id: str,
@@ -664,6 +733,110 @@ def list_analysis_times(
     return AnalysisTimeListResponse(
         items=[_analysis_time_to_out(item) for item in items],
         summary=AnalysisTimeSummaryOut(**summary),
+    )
+
+
+@router.get(
+    "/v1/application-evaluations",
+    response_model=ApplicationEvaluationListResponse,
+    tags=["application-evaluations"],
+    summary="Lista snapshots de notas da aplicação e médias por dimensão",
+)
+def list_application_evaluations(
+    container: AppContainer = Depends(get_container),
+) -> ApplicationEvaluationListResponse:
+    items, summary = container.list_application_evaluations_use_case.execute()
+    return ApplicationEvaluationListResponse(
+        items=[
+            ApplicationEvaluationOut(
+                entry_id=row["entry"].entry_id,
+                petition_id=row["entry"].petition_id,
+                petition_name=row["entry"].petition_name,
+                scores=row["entry"].scores,
+                problems=row["entry"].problems,
+                injection_risk=row["entry"].injection_risk,
+                injection_score=row["entry"].injection_score,
+                created_at=row["entry"].created_at,
+                seconds=row["entry"].seconds,
+                campaign=PetitionCampaignOut(
+                    petition_id=row["entry"].petition_id or "",
+                    **row["campaign"],
+                )
+                if row["entry"].petition_id
+                else None,
+            )
+            for row in items
+        ],
+        summary=ApplicationEvaluationSummaryOut(**summary),
+    )
+
+
+@router.delete(
+    "/v1/application-evaluations/{petition_id}",
+    response_model=DeleteAnalyzedPetitionResponse,
+    tags=["application-evaluations"],
+    summary="Exclui petição analisada (snapshot + avaliações humanas da campanha)",
+)
+def delete_analyzed_petition(
+    petition_id: str,
+    container: AppContainer = Depends(get_container),
+) -> DeleteAnalyzedPetitionResponse:
+    try:
+        result = container.delete_analyzed_petition_use_case.execute(petition_id)
+    except LookupError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return DeleteAnalyzedPetitionResponse(**result)
+
+
+@router.get(
+    "/v1/evaluators",
+    response_model=EvaluatorsListResponse,
+    tags=["validation"],
+    summary="Lista os 30 avaliadores fixos (e status na petição, se informada)",
+)
+def list_evaluators(
+    petition_id: str | None = Query(default=None),
+    container: AppContainer = Depends(get_container),
+) -> EvaluatorsListResponse:
+    evaluators = container.list_evaluators_use_case.execute()
+    responded: dict[str, str] = {}
+    if petition_id:
+        for item in container.validation_repository.list_by_petition(petition_id):
+            if item.evaluator_id:
+                responded[item.evaluator_id] = item.validation_id
+    return EvaluatorsListResponse(
+        items=[
+            EvaluatorOut(
+                evaluator_id=ev.evaluator_id,
+                name=ev.name,
+                sort_order=ev.sort_order,
+                has_responded=ev.evaluator_id in responded,
+                validation_id=responded.get(ev.evaluator_id),
+            )
+            for ev in evaluators
+        ],
+    )
+
+
+@router.get(
+    "/v1/petitions/{petition_id}/campaign",
+    response_model=PetitionCampaignOut,
+    tags=["validation"],
+    summary="Progresso da campanha humana (N de 30) de uma petição",
+)
+def petition_campaign(
+    petition_id: str,
+    container: AppContainer = Depends(get_container),
+) -> PetitionCampaignOut:
+    progress = container.get_campaign_progress_use_case.execute(petition_id)
+    return PetitionCampaignOut(
+        petition_id=progress.petition_id,
+        required=progress.required,
+        completed=progress.completed,
+        remaining=progress.remaining,
+        is_complete=progress.is_complete,
     )
 
 
@@ -726,6 +899,7 @@ def _reading_time_to_out(entry: ReadingTimeEntry) -> ReadingTimeOut:
         minutes=entry.minutes,
         label=format_minutes(entry.minutes),
         created_at=entry.created_at,
+        evaluator_id=entry.evaluator_id,
     )
 
 
@@ -745,12 +919,27 @@ def get_human_validation(
     return _validation_to_out(validation)
 
 
+@router.delete(
+    "/v1/validations/{validation_id}",
+    tags=["validation"],
+    summary="Exclui uma avaliação humana",
+)
+def delete_human_validation(
+    validation_id: str,
+    container: AppContainer = Depends(get_container),
+) -> dict[str, str]:
+    if not container.delete_human_validation_use_case.execute(validation_id):
+        raise HTTPException(status_code=404, detail="Validação não encontrada.")
+    return {"status": "deleted"}
+
+
 def _validation_to_out(validation: HumanValidation) -> HumanValidationOut:
     return HumanValidationOut(
         validation_id=validation.validation_id,
         petition_id=validation.petition_id,
         petition_name=validation.petition_name,
         reviewer_name=validation.reviewer_name,
+        evaluator_id=validation.evaluator_id,
         created_at=validation.created_at,
         prototype_scores=validation.prototype_scores,
         human_scores=validation.human_scores,
@@ -766,8 +955,10 @@ def _validation_to_out(validation: HumanValidation) -> HumanValidationOut:
         textual_cohesion_ok=validation.textual_cohesion_ok,
         argumentative_consistency_ok=validation.argumentative_consistency_ok,
         legal_basis_ok=validation.legal_basis_ok,
-        final_quality=validation.final_quality,
+        general_score=validation.general_score,
+        application_use_score=validation.application_use_score,
         comments=validation.comments,
+        reading_minutes=validation.reading_minutes,
         comparison=ComparisonOut(
             mae_scores=validation.comparison.mae_scores,
             agreement_rate=validation.comparison.agreement_rate,

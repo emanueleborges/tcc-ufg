@@ -265,7 +265,7 @@ Todas as configurações ficam em `backend/src/config/settings.py`, com valores 
 | `RAG_TOP_K` | `8` | Quantos chunks similares retornar |
 | `RAG_ANONYMIZE` | `true` | Anonimiza CPF/CNPJ/processo/email/telefone |
 | `OLLAMA_HOST` | `http://localhost:11434` | Endpoint do Ollama |
-| `OLLAMA_MODEL` | `llama3:latest` | Modelo padrão do Ollama |
+| `OLLAMA_MODEL` | `qwen2.5-coder:7b` | Modelo padrão do Ollama |
 | `SCRAPING_DOWNLOAD_LIMIT` | `100` | Mínimo de PDFs novos por execução (aceitas + rejeitadas) |
 | `SCRAPING_KEEP_REJECTED` | `true` | Sempre salvar também as rejeitadas |
 | `SCRAPING_MAX_RUNTIME_SECONDS` | `2700` | Tempo máximo do scraping |

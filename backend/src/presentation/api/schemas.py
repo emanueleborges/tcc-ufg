@@ -23,7 +23,7 @@ class ChatCompletionRequest(BaseModel):
     """
 
     model: str = Field(
-        default="llama3.1:8b",
+        default="qwen2.5-coder:7b",
         description="Modelo Ollama usado nas respostas que passam pelo LLM.",
     )
     messages: list[ChatMessageIn] = Field(
@@ -196,7 +196,8 @@ class HumanValidationCreateRequest(BaseModel):
 
     petition_id: str = Field(..., min_length=1)
     petition_name: str = ""
-    reviewer_name: str = Field(..., min_length=1)
+    evaluator_id: str = Field(..., min_length=1)
+    reviewer_name: str = ""
     prototype_scores: dict[str, float] = Field(default_factory=dict)
     human_scores: dict[str, float] = Field(default_factory=dict)
     problem_assessments: list[ProblemAssessmentIn] = Field(default_factory=list)
@@ -204,8 +205,14 @@ class HumanValidationCreateRequest(BaseModel):
     textual_cohesion_ok: bool = False
     argumentative_consistency_ok: bool = False
     legal_basis_ok: bool = False
-    final_quality: int = Field(default=3, ge=1, le=5)
+    general_score: float = Field(default=0.0, ge=0.0, le=100.0)
+    application_use_score: float = Field(default=0.0, ge=0.0, le=100.0)
     comments: str = ""
+    reading_minutes: int = Field(
+        default=0,
+        ge=0,
+        description="Legado opcional; tempo oficial fica em /v1/reading-times (1 por avaliador).",
+    )
 
 
 class ComparisonOut(BaseModel):
@@ -216,6 +223,7 @@ class ComparisonOut(BaseModel):
     problems_partial: int
     problems_rejected: int
     summary: str
+    general_gap: float = 0.0
 
 
 class ProblemAssessmentOut(BaseModel):
@@ -229,6 +237,7 @@ class HumanValidationOut(BaseModel):
     petition_id: str
     petition_name: str
     reviewer_name: str
+    evaluator_id: Optional[str] = None
     created_at: str
     prototype_scores: dict[str, float]
     human_scores: dict[str, float]
@@ -237,8 +246,10 @@ class HumanValidationOut(BaseModel):
     textual_cohesion_ok: bool
     argumentative_consistency_ok: bool
     legal_basis_ok: bool
-    final_quality: int
+    general_score: float
+    application_use_score: float
     comments: str
+    reading_minutes: int = 0
     comparison: ComparisonOut
     markdown_report: str = ""
 
@@ -247,7 +258,8 @@ class ValidationSummaryOut(BaseModel):
     count: int
     mean_mae: Optional[float] = None
     mean_agreement_rate: Optional[float] = None
-    mean_final_quality: Optional[float] = None
+    mean_general_score: Optional[float] = None
+    mean_application_use_score: Optional[float] = None
 
 
 class DimensionMetricOut(BaseModel):
@@ -267,6 +279,15 @@ class ProblemVerdictsOut(BaseModel):
     total: int = 0
 
 
+class CampaignProgressOut(BaseModel):
+    required_evaluations: int = 30
+    completed: int = 0
+    remaining: int = 30
+    is_complete: bool = False
+    completed_petitions: Optional[int] = None
+    linked_petitions: Optional[int] = None
+
+
 class ValidationMetricsResponse(BaseModel):
     """Agregados do dashboard de validação humana (TCC)."""
 
@@ -275,22 +296,47 @@ class ValidationMetricsResponse(BaseModel):
     reviewers: int
     mean_mae: Optional[float] = None
     mean_agreement_rate: Optional[float] = None
-    mean_final_quality: Optional[float] = None
+    mean_general_score: Optional[float] = None
+    mean_application_use_score: Optional[float] = None
     dimensions: list[DimensionMetricOut] = Field(default_factory=list)
     problems: ProblemVerdictsOut = Field(default_factory=ProblemVerdictsOut)
+    campaign: Optional[dict[str, Any]] = None
+
+
+class EvaluatorOut(BaseModel):
+    evaluator_id: str
+    name: str
+    sort_order: int
+    has_responded: bool = False
+    validation_id: Optional[str] = None
+
+
+class EvaluatorsListResponse(BaseModel):
+    items: list[EvaluatorOut]
+    required_evaluations: int = 30
+
+
+class PetitionCampaignOut(BaseModel):
+    petition_id: str
+    required: int
+    completed: int
+    remaining: int
+    is_complete: bool
 
 
 # --- Tempos de leitura humana (advogado + tempo gasto) ---
 
 
 class ReadingTimeCreateRequest(BaseModel):
-    lawyer_name: str
-    minutes: int
+    evaluator_id: str = Field(..., min_length=1)
+    lawyer_name: str = ""
+    minutes: int = Field(..., ge=1)
 
 
 class ReadingTimeUpdateRequest(BaseModel):
-    lawyer_name: str
-    minutes: int
+    evaluator_id: str = ""
+    lawyer_name: str = ""
+    minutes: int = Field(..., ge=1)
 
 
 class ReadingTimeOut(BaseModel):
@@ -299,12 +345,15 @@ class ReadingTimeOut(BaseModel):
     minutes: int
     label: str
     created_at: str
+    evaluator_id: Optional[str] = None
 
 
 class ReadingTimeSummaryOut(BaseModel):
     count: int
     mean_minutes: Optional[float] = None
     mean_label: Optional[str] = None
+    required: int = 30
+    remaining: Optional[int] = None
     prototype_mean_seconds: float = 1.3
     prototype_mean_label: str = "1,3 s"
     prototype_measurements: int = 0
@@ -330,6 +379,37 @@ class AnalysisTimeSummaryOut(BaseModel):
 class AnalysisTimeListResponse(BaseModel):
     items: list[AnalysisTimeOut]
     summary: AnalysisTimeSummaryOut
+
+
+class ApplicationEvaluationOut(BaseModel):
+    entry_id: str
+    petition_id: Optional[str] = None
+    petition_name: str
+    scores: dict[str, float]
+    problems: list[str]
+    injection_risk: str
+    injection_score: int
+    created_at: str
+    seconds: Optional[float] = None
+    campaign: Optional[PetitionCampaignOut] = None
+
+
+class ApplicationEvaluationSummaryOut(BaseModel):
+    count: int
+    mean_scores: Optional[dict[str, float]] = None
+    required_evaluations: int = 30
+
+
+class ApplicationEvaluationListResponse(BaseModel):
+    items: list[ApplicationEvaluationOut]
+    summary: ApplicationEvaluationSummaryOut
+
+
+class DeleteAnalyzedPetitionResponse(BaseModel):
+    petition_id: str
+    petition_name: str
+    deleted_snapshot: bool
+    deleted_validations: int
 
 
 class MeasureAnalysisTimeRequest(BaseModel):
