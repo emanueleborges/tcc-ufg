@@ -23,6 +23,16 @@ Abra `http://localhost:5173`.
 
 A URL da API vem de `VITE_API_BASE_URL` (padrão: `http://localhost:8000`). O Vite também faz proxy de `/v1` e `/health`.
 
+## Docker
+
+Na raiz do monorepo:
+
+```bash
+docker compose up --build
+```
+
+Frontend em `http://localhost:8080` (nginx faz proxy de `/v1` e `/health` para o backend).
+
 ## Build
 
 ```bash

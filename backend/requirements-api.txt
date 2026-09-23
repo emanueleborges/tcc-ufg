@@ -1,0 +1,39 @@
+# Dependências da API FastAPI + React (sem Streamlit).
+# Use localmente: pip install -r requirements-api.txt
+# Docker backend: este arquivo é a fonte da imagem.
+
+# --- Busca web e HTTP ---
+ddgs>=9.0.0
+requests>=2.32.0
+urllib3>=2.0.0
+beautifulsoup4>=4.12.0
+
+# --- Leitura e geração de PDF ---
+pypdf>=4.3.0
+PyMuPDF>=1.26.0
+reportlab>=4.2.0
+
+# --- OCR ---
+rapidocr>=3.0.0
+onnxruntime>=1.18.0
+
+# --- Embeddings e NLP ---
+numpy>=1.26.0
+sentence-transformers>=3.0.0
+
+# --- Banco vetorial (índice RAG) ---
+chromadb>=1.0.0
+
+# --- LangChain (orquestração do chatbot) ---
+langchain>=0.3.0
+langchain-core>=0.3.0
+langchain-community>=0.3.0
+langchain-ollama>=0.2.0
+
+# --- Utilidades ---
+tqdm>=4.66.0
+
+# --- API HTTP (frontend React) ---
+fastapi>=0.115.0
+uvicorn[standard]>=0.30.0
+python-multipart>=0.0.9

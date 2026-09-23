@@ -215,6 +215,54 @@ Abra `http://localhost:5173`. A interface inclui:
 - badge de fonte / modelo / roteamento
 - painel de citações
 
+### Docker (API + frontend React)
+
+Com [Docker](https://docs.docker.com/get-docker/) e Compose:
+
+```bash
+# Na raiz do repositório
+cp .env.example .env   # opcional — ajuste OLLAMA_HOST / OLLAMA_MODEL
+docker compose up --build
+```
+
+- Frontend: `http://localhost:8080` (nginx proxy de `/v1` e `/health` → backend)
+- API / docs: `http://localhost:8000` e `http://localhost:8000/docs`
+
+O Ollama continua no host (`OLLAMA_HOST=http://host.docker.internal:11434` por padrão). Volumes locais preservam `uploads/`, `validacoes/`, índice RAG e downloads.
+
+Uso local (`pip install -r requirements.txt`, `python app.py api`, React/Vite) **não muda**. Só a imagem Docker usa `requirements-api.txt` (mesmo stack da API, sem Streamlit). O primeiro `docker compose build` demora por deps ML; builds seguintes usam cache.
+
+Parar:
+
+```bash
+docker compose down
+```
+
+Limpar containers, redes e imagens não usados (prune):
+
+```bash
+# Remove containers parados, redes não usadas e cache de build
+docker system prune -f
+
+# Também remove imagens não usadas (dangling + sem container)
+docker system prune -a -f
+
+# Inclui volumes anônimos não usados (cuidado: não apaga os bind mounts locais)
+docker system prune -a --volumes -f
+
+# Só imagens órfãs / não usadas
+docker image prune -a -f
+
+# Só containers parados
+docker container prune -f
+```
+
+Para remover só o stack deste projeto (containers + imagens do compose):
+
+```bash
+docker compose down --rmi local --remove-orphans
+```
+
 ### Interface web Streamlit
 
 ```bash

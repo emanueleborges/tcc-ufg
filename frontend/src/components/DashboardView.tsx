@@ -77,6 +77,7 @@ function parseTimeToMinutes(value: string): number | null {
 
 /** Fallback só se a API ainda não tiver medições reais. */
 const PROTOTYPE_MEAN_SECONDS = 1.3
+const PAGE_SIZE = 10
 const SCORE_FIELDS = [
   ['estrutura', 'Estrutura'],
   ['clareza', 'Clareza'],
@@ -179,6 +180,15 @@ function average(values: number[]): number | null {
   return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length)
 }
 
+function paginate<T>(items: T[], page: number, pageSize = PAGE_SIZE): T[] {
+  const start = Math.max(0, page) * pageSize
+  return items.slice(start, start + pageSize)
+}
+
+function totalPages(count: number, pageSize = PAGE_SIZE): number {
+  return Math.max(1, Math.ceil(count / pageSize))
+}
+
 function yesNoFromScore(score: number | null | undefined): 'sim' | 'nao' | '' {
   if (score == null || Number.isNaN(Number(score))) return ''
   return Number(score) >= 50 ? 'sim' : 'nao'
@@ -233,6 +243,8 @@ export function DashboardView({
   const [error, setError] = useState<string | null>(null)
   const [feedback, setFeedback] = useState<string | null>(null)
   const [timeFeedback, setTimeFeedback] = useState<string | null>(null)
+  const [validationsPage, setValidationsPage] = useState(0)
+  const [timesPage, setTimesPage] = useState(0)
   const evaluatorSelectRef = useRef<HTMLSelectElement>(null)
   const pieRef = useRef<SVGSVGElement>(null)
   const chartRef = useRef<SVGSVGElement>(null)
@@ -302,6 +314,43 @@ export function DashboardView({
 
   const timeCohortComplete = (data?.summary.count ?? 0) >= 30
 
+  const sortedValidations = useMemo(
+    () =>
+      [...validations].sort((a, b) =>
+        a.reviewer_name.localeCompare(b.reviewer_name, 'pt-BR', {
+          sensitivity: 'base',
+        }),
+      ),
+    [validations],
+  )
+
+  const sortedTimes = useMemo(
+    () =>
+      [...(data?.items ?? [])].sort((a, b) =>
+        a.lawyer_name.localeCompare(b.lawyer_name, 'pt-BR', {
+          sensitivity: 'base',
+        }),
+      ),
+    [data],
+  )
+
+  const validationsPageCount = totalPages(sortedValidations.length)
+  const timesPageCount = totalPages(sortedTimes.length)
+  const pagedValidations = paginate(sortedValidations, validationsPage)
+  const pagedTimes = paginate(sortedTimes, timesPage)
+
+  useEffect(() => {
+    if (validationsPage > validationsPageCount - 1) {
+      setValidationsPage(Math.max(0, validationsPageCount - 1))
+    }
+  }, [validationsPage, validationsPageCount])
+
+  useEffect(() => {
+    if (timesPage > timesPageCount - 1) {
+      setTimesPage(Math.max(0, timesPageCount - 1))
+    }
+  }, [timesPage, timesPageCount])
+
   const lawyerAverages = useMemo(() => {
     if (validations.length === 0) return null
     const scores = Object.fromEntries(
@@ -326,7 +375,7 @@ export function DashboardView({
         (validations.filter((validation) => Number(validation.application_use_score) >= 50)
           .length /
           validations.length) *
-          100,
+        100,
       ),
       applicationUseYesCount: validations.filter(
         (validation) => Number(validation.application_use_score) >= 50,
@@ -370,6 +419,7 @@ export function DashboardView({
     clearScoreFields()
     setTimeInput('')
     setFeedback(null)
+    setValidationsPage(0)
     if (!nextId) {
       setValidations([])
       setEvaluators((await listEvaluators()).items)
@@ -608,10 +658,8 @@ export function DashboardView({
       setValidations([])
       await load('')
       setFeedback(
-        `Petição excluída (${result.deleted_validations} avaliação${
-          result.deleted_validations === 1 ? '' : 'ões'
-        } humana${result.deleted_validations === 1 ? '' : 's'} removida${
-          result.deleted_validations === 1 ? '' : 's'
+        `Petição excluída (${result.deleted_validations} avaliação${result.deleted_validations === 1 ? '' : 'ões'
+        } humana${result.deleted_validations === 1 ? '' : 's'} removida${result.deleted_validations === 1 ? '' : 's'
         }).`,
       )
     } catch (err) {
@@ -652,7 +700,7 @@ export function DashboardView({
 
       {data && (
         <>
-          
+
           <section className="dashboard-section chart-section">
             <div className="dashboard-section-header">
               <h3 className="dashboard-section-title">Tempos de avaliação (eficiência)</h3>
@@ -733,129 +781,6 @@ export function DashboardView({
             </div>
           </div>
 
-          <section className="dashboard-section">
-            <h3 className="dashboard-section-title">
-              {editingTimeEntryId
-                ? 'Editar tempo de avaliação'
-                : 'Registrar tempo de avaliação'}
-            </h3>
-            <p className="dashboard-hint">
-              Um tempo por avaliador (máx. 30). Serve só às métricas de eficiência — sem
-              relação com as notas por petição.
-            </p>
-            <form className="reading-form" onSubmit={handleTimeSubmit}>
-              <label className="validation-field">
-                Avaliador *
-                <select
-                  value={timeEvaluatorId}
-                  onChange={(event) => onTimeEvaluatorChange(event.target.value)}
-                  required
-                  disabled={!editingTimeEntryId && timeCohortComplete}
-                >
-                  <option value="">Selecione…</option>
-                  {allEvaluators.map((evaluator) => {
-                    const hasTime = timeByEvaluatorId.has(evaluator.evaluator_id)
-                    const blocked = !editingTimeEntryId && hasTime
-                    return (
-                      <option
-                        key={evaluator.evaluator_id}
-                        value={evaluator.evaluator_id}
-                        disabled={blocked}
-                      >
-                        {evaluator.name}
-                        {hasTime ? ' (já registrado)' : ''}
-                      </option>
-                    )
-                  })}
-                </select>
-              </label>
-              <label className="validation-field reading-time-field">
-                Tempo de avaliação humana (hh:mm) *
-                <input
-                  type="text"
-                  inputMode="numeric"
-                  autoComplete="off"
-                  maxLength={5}
-                  value={timeInput}
-                  onChange={(e) => setTimeInput(formatTimeDigits(e.target.value))}
-                  onBlur={() => setTimeInput((current) => finalizeTimeInput(current))}
-                  placeholder="ex.: 08:30"
-                  required
-                  disabled={!editingTimeEntryId && timeCohortComplete}
-                />
-              </label>
-              <div className="validation-actions">
-                <button
-                  type="submit"
-                  className="primary-btn"
-                  disabled={
-                    submittingTime ||
-                    !timeEvaluatorId ||
-                    !timeInput.trim() ||
-                    (!editingTimeEntryId && timeCohortComplete)
-                  }
-                >
-                  {submittingTime
-                    ? 'Salvando…'
-                    : editingTimeEntryId
-                      ? 'Salvar tempo'
-                      : timeCohortComplete
-                        ? '30/30 tempos'
-                        : 'Registrar tempo'}
-                </button>
-                {editingTimeEntryId && (
-                  <button type="button" className="link-btn" onClick={cancelTimeEdit}>
-                    Cancelar
-                  </button>
-                )}
-                {timeFeedback && (
-                  <span className="validation-feedback">{timeFeedback}</span>
-                )}
-              </div>
-            </form>
-            {(data.items.length > 0) && (
-              <div className="validation-records-table-wrap" style={{ marginTop: '1rem' }}>
-                <table className="validation-records-table">
-                  <thead>
-                    <tr>
-                      <th scope="col">#</th>
-                      <th scope="col">Avaliador</th>
-                      <th scope="col">Tempo</th>
-                      <th scope="col">
-                        <span className="sr-only">Ações</span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...data.items]
-                      .sort((a, b) =>
-                        a.lawyer_name.localeCompare(b.lawyer_name, 'pt-BR', {
-                          sensitivity: 'base',
-                        }),
-                      )
-                      .map((item, index) => (
-                        <tr key={item.entry_id}>
-                          <td>{index + 1}</td>
-                          <th scope="row">{item.lawyer_name}</th>
-                          <td>{minutesToLabel(item.minutes)}</td>
-                          <td className="validation-record-actions-cell">
-                            <button
-                              type="button"
-                              className="link-btn"
-                              onClick={() =>
-                                onTimeEvaluatorChange(item.evaluator_id || '')
-                              }
-                            >
-                              Editar
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
 
           <section className="dashboard-section averages-section">
             <h3 className="dashboard-section-title">
@@ -911,22 +836,22 @@ export function DashboardView({
               </p>
             )}
 
-<div className="criteria-comparison-footer">
-                  <span>
-                    Aplicação: snapshot da petição selecionada
-                  </span>
-                  <span>
-                    Avaliação humana:{' '}
-                    <strong>{lawyerAverages?.count ?? 0}</strong>{' '}
-                    {lawyerAverages?.count === 1 ? 'registro' : 'registros'}
-                  </span>
-                  {lawyerAverages && (
-                    <span>
-                      Utilizaria esta aplicação:{' '}
-                      <strong>{lawyerAverages.applicationUseYesPercent}% SIM</strong>
-                    </span>
-                  )}
-                </div>
+            <div className="criteria-comparison-footer">
+              <span>
+                Aplicação: snapshot da petição selecionada
+              </span>
+              <span>
+                Avaliação humana:{' '}
+                <strong>{lawyerAverages?.count ?? 0}</strong>{' '}
+                {lawyerAverages?.count === 1 ? 'registro' : 'registros'}
+              </span>
+              {lawyerAverages && (
+                <span>
+                  Utilizaria esta aplicação:{' '}
+                  <strong>{lawyerAverages.applicationUseYesPercent}% SIM</strong>
+                </span>
+              )}
+            </div>
             {selectedPetitionId && (appAverages || lawyerAverages) ? (
               <>
                 <div className="criteria-comparison-grid">
@@ -963,7 +888,7 @@ export function DashboardView({
                     </article>
                   ))}
                 </div>
-                
+
                 <ScoreComparisonChart
                   criteria={[
                     ...SCORE_FIELDS.map(([key]) => ({
@@ -991,9 +916,6 @@ export function DashboardView({
             )}
           </section>
 
-          
-
-          
           <section className="dashboard-section">
             <h3 className="dashboard-section-title">
               {editingValidationId
@@ -1136,68 +1058,92 @@ export function DashboardView({
 
           <section className="dashboard-section">
             <h3 className="dashboard-section-title">Registros de avaliação humana</h3>
-            {validations.length > 0 ? (
-              <div className="validation-records-table-wrap">
-                <table className="validation-records-table">
-                  <thead>
-                    <tr>
-                      <th scope="col" className="validation-record-index">
-                        #
-                      </th>
-                      <th scope="col">Nome do avaliador</th>
-                      {SCORE_FIELDS.map(([, label]) => (
-                        <th scope="col" key={label}>
-                          {label}
+            {sortedValidations.length > 0 ? (
+              <>
+                <div className="validation-records-table-wrap">
+                  <table className="validation-records-table">
+                    <thead>
+                      <tr>
+                        <th scope="col" className="validation-record-index">
+                          #
                         </th>
-                      ))}
-                      <th scope="col">Geral</th>
-                      <th scope="col">Utilizaria</th>
-                      <th scope="col">
-                        <span className="sr-only">Ações</span>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {[...validations]
-                      .sort((a, b) =>
-                        a.reviewer_name.localeCompare(b.reviewer_name, 'pt-BR', {
-                          sensitivity: 'base',
-                        }),
-                      )
-                      .map((validation, index) => {
-                      return (
-                        <tr key={validation.validation_id}>
-                          <td className="validation-record-index">{index + 1}</td>
-                          <th scope="row">{validation.reviewer_name}</th>
-                          {SCORE_FIELDS.map(([key, label]) => (
-                            <td key={label}>
-                              {toPercentDisplay(validation.human_scores[key]) || '—'}%
+                        <th scope="col">Nome do avaliador</th>
+                        {SCORE_FIELDS.map(([, label]) => (
+                          <th scope="col" key={label}>
+                            {label}
+                          </th>
+                        ))}
+                        <th scope="col">Geral</th>
+                        <th scope="col">Utilizaria</th>
+                        <th scope="col">
+                          <span className="sr-only">Ações</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pagedValidations.map((validation, index) => {
+                        const rowNumber = validationsPage * PAGE_SIZE + index + 1
+                        return (
+                          <tr key={validation.validation_id}>
+                            <td className="validation-record-index">{rowNumber}</td>
+                            <th scope="row">{validation.reviewer_name}</th>
+                            {SCORE_FIELDS.map(([key, label]) => (
+                              <td key={label}>
+                                {toPercentDisplay(validation.human_scores[key]) || '—'}%
+                              </td>
+                            ))}
+                            <td>{toPercentDisplay(validation.general_score) || '—'}%</td>
+                            <td>{yesNoLabel(validation.application_use_score)}</td>
+                            <td className="validation-record-actions-cell">
+                              <button
+                                type="button"
+                                className="link-btn"
+                                onClick={() => startValidationEdit(validation)}
+                              >
+                                Editar
+                              </button>
+                              <button
+                                type="button"
+                                className="link-btn danger-btn"
+                                onClick={() => handleDeleteValidation(validation)}
+                              >
+                                Excluir
+                              </button>
                             </td>
-                          ))}
-                          <td>{toPercentDisplay(validation.general_score) || '—'}%</td>
-                          <td>{yesNoLabel(validation.application_use_score)}</td>
-                          <td className="validation-record-actions-cell">
-                            <button
-                              type="button"
-                              className="link-btn"
-                              onClick={() => startValidationEdit(validation)}
-                            >
-                              Editar
-                            </button>
-                            <button
-                              type="button"
-                              className="link-btn danger-btn"
-                              onClick={() => handleDeleteValidation(validation)}
-                            >
-                              Excluir
-                            </button>
-                          </td>
-                        </tr>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="table-pagination" role="navigation" aria-label="Paginação das avaliações">
+                  <button
+                    type="button"
+                    className="link-btn"
+                    disabled={validationsPage <= 0}
+                    onClick={() => setValidationsPage((page) => Math.max(0, page - 1))}
+                  >
+                    Anterior
+                  </button>
+                  <span>
+                    Página {validationsPage + 1} de {validationsPageCount} ·{' '}
+                    {sortedValidations.length} registro
+                    {sortedValidations.length === 1 ? '' : 's'}
+                  </span>
+                  <button
+                    type="button"
+                    className="link-btn"
+                    disabled={validationsPage >= validationsPageCount - 1}
+                    onClick={() =>
+                      setValidationsPage((page) =>
+                        Math.min(validationsPageCount - 1, page + 1),
                       )
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                    }
+                  >
+                    Próxima
+                  </button>
+                </div>
+              </>
             ) : (
               <p className="dashboard-hint">
                 {selectedPetitionId
@@ -1206,6 +1152,157 @@ export function DashboardView({
               </p>
             )}
           </section>
+        
+          <section className="dashboard-section">
+            <h2 className="dashboard-section-title">
+              {editingTimeEntryId
+                ? 'Editar tempo de avaliação'
+                : 'Registrar tempo de avaliação'}
+            </h2>
+            <p className="dashboard-hint">
+              Um tempo por avaliador (máx. 29). Serve só às métricas de eficiência — sem
+              relação com as notas por petição.
+            </p>
+            <form className="reading-form" onSubmit={handleTimeSubmit}>
+              <label className="validation-field">
+                Avaliador *
+                <select
+                  value={timeEvaluatorId}
+                  onChange={(event) => onTimeEvaluatorChange(event.target.value)}
+                  required
+                  disabled={!editingTimeEntryId && timeCohortComplete}
+                >
+                  <option value="">Selecione…</option>
+                  {allEvaluators.map((evaluator) => {
+                    const hasTime = timeByEvaluatorId.has(evaluator.evaluator_id)
+                    const blocked = !editingTimeEntryId && hasTime
+                    return (
+                      <option
+                        key={evaluator.evaluator_id}
+                        value={evaluator.evaluator_id}
+                        disabled={blocked}
+                      >
+                        {evaluator.name}
+                        {hasTime ? ' (já registrado)' : ''}
+                      </option>
+                    )
+                  })}
+                </select>
+              </label>
+              <label className="validation-field reading-time-field">
+                Tempo de avaliação humana (hh:mm) *
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  maxLength={4}
+                  value={timeInput}
+                  onChange={(e) => setTimeInput(formatTimeDigits(e.target.value))}
+                  onBlur={() => setTimeInput((current) => finalizeTimeInput(current))}
+                  placeholder="ex.: 7:30"
+                  required
+                  disabled={!editingTimeEntryId && timeCohortComplete}
+                />
+              </label>
+              <div className="validation-actions">
+                <button
+                  type="submit"
+                  className="primary-btn"
+                  disabled={
+                    submittingTime ||
+                    !timeEvaluatorId ||
+                    !timeInput.trim() ||
+                    (!editingTimeEntryId && timeCohortComplete)
+                  }
+                >
+                  {submittingTime
+                    ? 'Salvando…'
+                    : editingTimeEntryId
+                      ? 'Salvar tempo'
+                      : timeCohortComplete
+                        ? '29/30 tempos'
+                        : 'Registrar tempo'}
+                </button>
+                {editingTimeEntryId && (
+                  <button type="button" className="link-btn" onClick={cancelTimeEdit}>
+                    Cancelar
+                  </button>
+                )}
+                {timeFeedback && (
+                  <span className="validation-feedback">{timeFeedback}</span>
+                )}
+              </div>
+            </form>
+            {(sortedTimes.length > 0) && (
+              <>
+                <div className="validation-records-table-wrap" style={{ marginTop: '0rem' }}>
+                  <table className="validation-records-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Avaliador</th>
+                        <th scope="col">Tempo</th>
+                        <th scope="col">
+                          <span className="sr-only">Ações</span>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {pagedTimes.map((item, index) => {
+                        const rowNumber = timesPage * PAGE_SIZE + index + 1
+                        return (
+                          <tr key={item.entry_id}>
+                            <td>{rowNumber}</td>
+                            <th scope="row">{item.lawyer_name}</th>
+                            <td>{minutesToLabel(item.minutes)}</td>
+                            <td className="validation-record-actions-cell">
+                              <button
+                                type="button"
+                                className="link-btn"
+                                onClick={() =>
+                                  onTimeEvaluatorChange(item.evaluator_id || '')
+                                }
+                              >
+                                Editar
+                              </button>
+                            </td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="table-pagination" role="navigation" aria-label="Paginação dos tempos">
+                  <button
+                    type="button"
+                    className="link-btn"
+                    disabled={timesPage <= 0}
+                    onClick={() => setTimesPage((page) => Math.max(0, page - 1))}
+                  >
+                    Anterior
+                  </button>
+                  <span>
+                    Página {timesPage + 1} de {timesPageCount} · {sortedTimes.length}{' '}
+                    registro{sortedTimes.length === 1 ? '' : 's'}
+                  </span>
+                  <button
+                    type="button"
+                    className="link-btn"
+                    disabled={timesPage >= timesPageCount - 1}
+                    onClick={() =>
+                      setTimesPage((page) => Math.min(timesPageCount - 1, page + 1))
+                    }
+                  >
+                    Próxima
+                  </button>
+                </div>
+              </>
+            )}
+          </section>
+
+ 
+
+        
         </>
       )}
     </div>

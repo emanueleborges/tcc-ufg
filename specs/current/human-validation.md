@@ -74,7 +74,8 @@ probabilística.
 - **CRUD de tempo** separado: um registro por avaliador (máx. 30), só para métricas de eficiência
 - Avaliadores que já responderam a petição aparecem marcados; é possível editar a resposta existente
 - Em 30/30, novas inclusões de notas ficam bloqueadas
-- Tabela e médias de **notas** filtrados pela petição selecionada
+- Tabela e médias de **notas** filtrados pela petição selecionada (lista paginada de **10 em 10**)
+- Tabela de tempos (máx. 30) também paginada de **10 em 10**
 - Gráficos e cards de **tempo** (eficiência) são **globais**: no máximo 30 registros (um por avaliador)
 - Gráfico de barras **Aplicação × Avaliação humana** + card de aceitação (% SIM), filtrados pela petição
 - API: `/v1/evaluators`, `/v1/application-evaluations`, `/v1/validations` (com `petition_id`/`evaluator_id`)
@@ -119,3 +120,4 @@ probabilística.
 - [x] Dashboard: notas e campanha filtrados por petição; tempos (gráficos/cards) agregados de todas as petições
 - [x] Exclusão de petição analisada remove snapshot + avaliações humanas da campanha
 - [x] Tempo de avaliação: no máx. 30 registros (1 por avaliador), separado das notas por petição
+- [x] Listas de avaliações e tempos paginadas de 10 em 10 no dashboard

@@ -6,9 +6,15 @@
 
 Principais rotas: `/health`, `/v1/models`, `/v1/chat/completions`, `/v1/uploads`, `/v1/index`, `/v1/index/rebuild[/stream]`, `/v1/scrape[/stream]`, `/v1/validations`.
 
-## Frontend (React `:5173`)
+## Frontend (React `:5173` local / `:8080` no Docker)
 
 Chat + sidebar (modelo, sliders, rebuild/scrape com %).
+
+## Docker
+
+Ver `specs/current/docker-deploy.md` e `docker compose up --build` na raiz.
+- Frontend container: `http://localhost:8080` (proxy `/v1` → `backend:8000`)
+- Backend container: `http://localhost:8000`
 
 ### Responsividade
 
@@ -34,3 +40,4 @@ Altura ≤ 820px: sidebar ainda mais compacta (sem scrollbar da página).
 - [x] Mobile (≤900): drawer de configurações + chat full-width
 - [x] Phone (≤640): composer e mensagens usáveis sem overflow horizontal
 - [x] Temas claro/escuro com ícone de alternância (ver `theme-toggle.md`)
+- [x] Docker Compose sobe API + frontend React (ver `docker-deploy.md`)
